@@ -1,6 +1,5 @@
 import express from "express";
-import registerController from "../controllers/register.controller.js";
-import { vendorDataController } from "../controllers/vendor-data.controller.js";
+import routes from "../routes/index.js";
 
 const app = express();
 
@@ -11,11 +10,8 @@ app.get("/health", (req, res) => {
     res.json({ message: "ok" });
 });
 
-// Vendor registration
-app.post("/register", registerController);
-
-// Vendor Data
-app.get("/vendor-data", vendorDataController);
+// Mount application routes
+app.use(routes);
 
 app.listen(3000, () => {
     console.log("Server started on port 3000");
