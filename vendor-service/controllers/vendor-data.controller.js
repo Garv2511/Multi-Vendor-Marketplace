@@ -2,12 +2,12 @@ import { getVendor } from "../services/vendor-data.service.js";
 
 const vendorDataController = async (req, res) => {
     try {
-        const uuid = req.query.uuid || req.body?.uuid;
-        const userId = req.query.userId || req.body?.userId;
+        const userId = req.params?.userId || req.query?.userId;
+        const uuid = req.query?.uuid;
 
-        if (!uuid && !userId) {
+        if (!userId && !uuid) {
             return res.status(400).json({
-                message: "Please provide either uuid or userId to fetch vendor data"
+                message: "userId parameter is required to fetch vendor data"
             });
         }
 
@@ -16,6 +16,13 @@ const vendorDataController = async (req, res) => {
         if (!vendorData) {
             return res.status(404).json({
                 message: "Vendor not found"
+            });
+        }
+
+        // Non-admin vendors are only permitted to access their own vendor record
+        if (req.user && req.user.role !== "admin" && Number(vendorData.userId) !== Number(req.user.userId)) {
+            return res.status(403).json({
+                message: "Forbidden: You are only allowed to access your own vendor data"
             });
         }
 

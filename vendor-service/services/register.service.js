@@ -1,8 +1,9 @@
 import Vendor from "../utils/db.js";
 
-const register = async (userId, storeName, slug, kycDocs, status, commissionPct, payoutAccountId) => {
+const register = async (userId, storeName, slug, kycDocs, status, commissionPct, payoutAccountId, email) => {
     const vendor = new Vendor({
         userId,
+        email,
         storeName,
         slug,
         kycDocs,
@@ -13,10 +14,11 @@ const register = async (userId, storeName, slug, kycDocs, status, commissionPct,
     await vendor.save();
     return {
         message: "Vendor created sucessfully",
-        statusCode: 200
-    }
-}
+        statusCode: 200,
+        data: vendor
+    };
+};
 
 export {
     register
-}
+};

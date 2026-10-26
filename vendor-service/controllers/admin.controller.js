@@ -2,7 +2,7 @@ import { approveVendor, rejectVendor, getAllPending } from "../services/admin.se
 
 const adminController = async (req, res) => {
     try {
-        if (req.method === "GET") {
+        if (req.method === "GET" || req.path.includes("pending")) {
             const pendingVendors = await getAllPending();
             return res.status(200).json({
                 message: "Pending vendors fetched successfully",
@@ -10,17 +10,22 @@ const adminController = async (req, res) => {
             });
         }
 
-        const userId = req.body?.userId || req.query?.userId;
-        const status = req.body?.status || req.query?.status;
-        const action = req.body?.action || req.query?.action;
+        // All POST request parameters come from req.body
+        const { userId, status, action } = req.body || {};
 
         if (!userId) {
             return res.status(400).json({
-                message: "userId is required"
+                message: "userId is required in request body"
             });
         }
 
-        const operation = (status || action || "").toLowerCase();
+        const pathAction = req.path.includes("approve")
+            ? "approved"
+            : req.path.includes("reject")
+            ? "rejected"
+            : "";
+
+        const operation = (pathAction || status || action || "").toLowerCase();
 
         let result;
         if (operation === "approved" || operation === "approve") {
@@ -29,7 +34,7 @@ const adminController = async (req, res) => {
             result = await rejectVendor(userId);
         } else {
             return res.status(400).json({
-                message: "Valid status or action is required ('approved' or 'rejected')"
+                message: "Valid action ('approve' or 'reject') is required"
             });
         }
 

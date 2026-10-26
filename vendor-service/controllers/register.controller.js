@@ -3,7 +3,7 @@ import { register } from "../services/register.service.js";
 const registerController = async (req, res) => {
     try {
         const {
-            userId,
+            userId: bodyUserId,
             storeName,
             slug,
             kycDocs,
@@ -11,6 +11,17 @@ const registerController = async (req, res) => {
             commissionPct,
             payoutAccountId
         } = req.body || {};
+
+        // Use authenticated user's userId if not explicitly provided
+        const authenticatedUserId = req.user?.userId;
+        const userId = bodyUserId || authenticatedUserId;
+
+        // Prevent vendors from impersonating or registering for another userId
+        if (req.user && req.user.role !== "admin" && bodyUserId && Number(bodyUserId) !== Number(authenticatedUserId)) {
+            return res.status(403).json({
+                message: "Forbidden: You cannot register a vendor profile for another user"
+            });
+        }
 
         if (!userId || !storeName) {
             return res.status(400).json({
@@ -27,7 +38,8 @@ const registerController = async (req, res) => {
             kycDocs || [],
             status || "pending",
             commissionPct ?? 0,
-            payoutAccountId || ""
+            payoutAccountId || "",
+            req.user?.email
         );
 
         return res.status(result.statusCode || 200).json(result);
