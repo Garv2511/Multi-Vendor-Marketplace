@@ -57,6 +57,7 @@ sequenceDiagram
 | `/admin/pending` | `GET` | `admin` | Lists all pending vendor approval requests |
 | `/admin/approve` | `POST` | `admin` | Approves a vendor application |
 | `/admin/reject` | `POST` | `admin` | Rejects a vendor application |
+| `/products` | `POST` | Approved `vendor` | Creates a product for the authenticated vendor |
 
 ---
 
@@ -160,3 +161,20 @@ GET /admin/pending HTTP/1.1
 Host: localhost:3001
 Authorization: Bearer <admin-token>
 ```
+### 7. Create a Product (Approved Vendor Only)
+```http
+POST /products
+Host: localhost:3001
+Authorization: Bearer <vendor-jwt>
+Content-Type: application/json
+
+{
+  "title": "Wireless Headphones",
+  "description": "Noise-cancelling over-ear headphones",
+  "price": 79.99,
+  "stockQuantity": 25
+}
+```
+
+The vendor ID is taken from the authenticated JWT and matched against the vendor
+record. Client-provided vendor IDs and protected fields are ignored.
