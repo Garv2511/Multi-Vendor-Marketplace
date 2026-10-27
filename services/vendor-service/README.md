@@ -58,6 +58,7 @@ sequenceDiagram
 | `/admin/approve` | `POST` | `admin` | Approves a vendor application |
 | `/admin/reject` | `POST` | `admin` | Rejects a vendor application |
 | `/products` | `POST` | Approved `vendor` | Creates a product for the authenticated vendor |
+| `/products/my` | `GET` | `vendor` | Lists products belonging to the authenticated vendor |
 
 ---
 

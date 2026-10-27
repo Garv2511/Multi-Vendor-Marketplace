@@ -1,4 +1,25 @@
-import { createProduct } from "../services/product.service.js";
+import { createProduct, getMyProducts } from "../services/product.service.js";
+
+const getMyProductsController = async (req, res) => {
+    try {
+        const userId = req.user?.userId;
+        if (userId === undefined || userId === null) {
+            return res.status(401).json({ message: "Authenticated user identity is required" });
+        }
+
+        const products = await getMyProducts(userId);
+
+        return res.status(200).json({
+            message: "Vendor products fetched successfully",
+            data: products
+        });
+    } catch (error) {
+        console.error("Error in getMyProductsController:", error);
+        return res.status(error.statusCode || 500).json({
+            message: error.message || "Internal server error while fetching products"
+        });
+    }
+};
 
 const createProductController = async (req, res) => {
     try {
@@ -39,5 +60,5 @@ const createProductController = async (req, res) => {
     }
 };
 
-export { createProductController };
-export default createProductController;
+export { getMyProductsController, createProductController };
+export default { getMyProductsController, createProductController };

@@ -26,5 +26,34 @@ const createProduct = async (userId, productData) => {
     return product;
 };
 
-export { createProduct };
-export default { createProduct };
+const getMyProducts = async (userId) => {
+    const vendor = await Vendor.findOne({ userId: Number(userId) })
+        .select("userId email storeName")
+        .lean();
+
+    if (!vendor) {
+        const error = new Error("Vendor profile not found");
+        error.statusCode = 404;
+        throw error;
+    }
+
+    const products = await Product.find({ vendorId: vendor.userId })
+        .sort({ createdAt: -1, _id: -1 })
+        .lean();
+
+    return products.map((product) => ({
+        productId: product._id,
+        title: product.title,
+        description: product.description,
+        price: product.price,
+        stockQuantity: product.stockQuantity,
+        createdAt: product.createdAt,
+        updatedAt: product.updatedAt,
+        vendorId: product.vendorId,
+        vendorEmail: vendor.email,
+        storeName: vendor.storeName
+    }));
+};
+
+export { createProduct, getMyProducts };
+export default { createProduct, getMyProducts };
