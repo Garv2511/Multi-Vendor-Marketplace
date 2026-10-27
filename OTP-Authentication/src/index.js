@@ -1,5 +1,6 @@
 import express from "express";
 import dotenv from "dotenv";
+import cors from "cors";
 import createOTP from "../src/controller/createOtp.js";
 import verifyOtp from "../src/controller/verifyOtp.js";
 import checkResends from "../src/middlewares/checkResends.js";
@@ -9,6 +10,13 @@ import resendOtp from "../src/controller/resendOtp.js";
 
 dotenv.config();
 const app = express();
+
+app.use(cors({
+  origin: "*",
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"]
+}));
+
 app.use(express.json());
 
 app.get("/", (req, res) => {

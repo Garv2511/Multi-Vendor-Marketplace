@@ -1,11 +1,19 @@
 import express from "express";
 import dotenv from "dotenv";
+import cors from "cors";
 
 dotenv.config();
 
 import routes from "../routes/index.js";
 
 const app = express();
+
+// Enable CORS for all origins and headers
+app.use(cors({
+    origin: "*",
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"]
+}));
 
 app.use(express.json());
 
