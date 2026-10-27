@@ -1,4 +1,10 @@
-import { requestOtp, resendOtp, verifyOtpAndLogin } from "../services/auth.service.js";
+import {
+    requestOtp,
+    resendOtp,
+    verifyOtpAndLogin,
+    loginWithPassword,
+    setPassword
+} from "../services/auth.service.js";
 import { Vendor } from "../utils/db.js";
 
 export const requestOtpController = async (req, res) => {
@@ -52,6 +58,42 @@ export const verifyOtpController = async (req, res) => {
     }
 };
 
+export const loginWithPasswordController = async (req, res) => {
+    try {
+        const { email, password } = req.body || {};
+        if (!email || !password) {
+            return res.status(400).json({ message: "Both email and password are required" });
+        }
+
+        const result = await loginWithPassword(email, password);
+        return res.status(200).json(result);
+    } catch (error) {
+        console.error("Error in loginWithPasswordController:", error);
+        return res.status(error.statusCode || 500).json({
+            message: error.message || "Failed to log in"
+        });
+    }
+};
+
+export const setPasswordController = async (req, res) => {
+    try {
+        const { password } = req.body || {};
+        const userId = req.user?.userId;
+
+        if (!password) {
+            return res.status(400).json({ message: "Password is required" });
+        }
+
+        const result = await setPassword(userId, password);
+        return res.status(200).json(result);
+    } catch (error) {
+        console.error("Error in setPasswordController:", error);
+        return res.status(error.statusCode || 500).json({
+            message: error.message || "Failed to set password"
+        });
+    }
+};
+
 export const getMeController = async (req, res) => {
     try {
         const vendor = await Vendor.findOne({ userId: req.user.userId });
@@ -73,5 +115,7 @@ export default {
     requestOtpController,
     resendOtpController,
     verifyOtpController,
+    loginWithPasswordController,
+    setPasswordController,
     getMeController
 };

@@ -9,7 +9,8 @@ const registerController = async (req, res) => {
             kycDocs,
             status,
             commissionPct,
-            payoutAccountId
+            payoutAccountId,
+            password
         } = req.body || {};
 
         // Use authenticated user's userId if not explicitly provided
@@ -39,7 +40,8 @@ const registerController = async (req, res) => {
             status || "pending",
             commissionPct ?? 0,
             payoutAccountId || "",
-            req.user?.email
+            req.user?.email,
+            password
         );
 
         return res.status(result.statusCode || 200).json(result);

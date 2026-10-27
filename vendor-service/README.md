@@ -47,8 +47,10 @@ sequenceDiagram
 | `/auth/request-otp` | `POST` | Public | Initiates OTP delivery to user's email via OTP microservice |
 | `/auth/verify-otp` | `POST` | Public | Validates OTP with OTP service and returns a role-based JWT |
 | `/auth/resend-otp` | `POST` | Public | Resends OTP adhering to cooldown rules in OTP microservice |
+| `/auth/login` | `POST` | Public | Authenticates using email and hashed password, returns role-based JWT |
+| `/auth/set-password` | `POST` | `vendor`, `admin` | Sets or updates account password after bcrypt hashing |
 | `/auth/me` | `GET` | `vendor`, `admin` | Returns the authenticated user's profile and vendor data |
-| `/register` | `POST` | `vendor`, `admin` | Registers vendor store (binds to authenticated user ID) |
+| `/register` | `POST` | `vendor`, `admin` | Registers vendor store with optional hashed password |
 | `/vendor-data/:userId` | `GET` | `admin`, or owning `vendor` | Vendor can only access their own data; Admin can access any |
 | `/admin/pending` | `GET` | `admin` | Lists all pending vendor approval requests |
 | `/admin/approve` | `POST` | `admin` | Approves a vendor application |
@@ -111,7 +113,7 @@ Content-Type: application/json
 }
 ```
 
-### 3. Register as a Vendor (Vendor Role)
+### 3. Register as a Vendor with Optional Password
 ```http
 POST /register HTTP/1.1
 Host: localhost:3001
@@ -120,11 +122,37 @@ Content-Type: application/json
 
 {
   "storeName": "My Awesome Store",
-  "kycDocs": ["doc1.pdf"]
+  "kycDocs": ["doc1.pdf"],
+  "password": "MySecretPassword123!"
+}
+```
+*The password is securely hashed via bcrypt before saving to MongoDB, and is omitted from all JSON responses.*
+
+### 4. Authenticate Using Email & Password
+```http
+POST /auth/login HTTP/1.1
+Host: localhost:3001
+Content-Type: application/json
+
+{
+  "email": "vendor@example.com",
+  "password": "MySecretPassword123!"
 }
 ```
 
-### 4. Admin Access (Admin Role Only)
+### 5. Set or Update Password
+```http
+POST /auth/set-password HTTP/1.1
+Host: localhost:3001
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "password": "NewSecretPassword456!"
+}
+```
+
+### 6. Admin Access (Admin Role Only)
 ```http
 GET /admin/pending HTTP/1.1
 Host: localhost:3001

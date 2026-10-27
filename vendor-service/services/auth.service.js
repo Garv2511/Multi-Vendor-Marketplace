@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import { User, Vendor } from "../utils/db.js";
+import { hashPassword, comparePassword } from "../utils/password.js";
 
 const OTP_SERVICE_URL = process.env.OTP_SERVICE_URL || "http://localhost:3000";
 const JWT_SECRET = process.env.JWT_SECRET || "super_secret_vendor_service_jwt_key_2026";
@@ -166,8 +167,125 @@ const verifyOtpAndLogin = async (email, otp) => {
     };
 };
 
+/**
+ * Authenticates user using email and password
+ */
+const loginWithPassword = async (email, password) => {
+    if (!email || !password) {
+        const error = new Error("Email and password are required");
+        error.statusCode = 400;
+        throw error;
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    let user = await User.findOne({ email: normalizedEmail }).select("+password");
+
+    // If user record doesn't exist, check Vendor record
+    let vendorProfile = await Vendor.findOne({
+        $or: [{ email: normalizedEmail }, ...(user ? [{ userId: user.userId }] : [])]
+    }).select("+password");
+
+    let passwordHash = user?.password || vendorProfile?.password;
+
+    if (!user && !vendorProfile) {
+        const error = new Error("Invalid email or password");
+        error.statusCode = 401;
+        throw error;
+    }
+
+    if (!passwordHash) {
+        const error = new Error("No password set for this account. Please authenticate with OTP or set a password.");
+        error.statusCode = 400;
+        throw error;
+    }
+
+    const isMatch = await comparePassword(password, passwordHash);
+    if (!isMatch) {
+        const error = new Error("Invalid email or password");
+        error.statusCode = 401;
+        throw error;
+    }
+
+    // If user didn't exist in User table but existed in Vendor table, create User record
+    if (!user && vendorProfile) {
+        const isAdmin = isConfiguredAdmin(normalizedEmail);
+        user = new User({
+            userId: vendorProfile.userId,
+            email: normalizedEmail,
+            role: isAdmin ? "admin" : "vendor",
+            password: passwordHash
+        });
+        await user.save();
+    }
+
+    // Role-based JWT
+    const payload = {
+        userId: user.userId,
+        email: user.email,
+        role: user.role
+    };
+
+    const token = jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+
+    return {
+        message: "Login successful",
+        token,
+        user: {
+            userId: user.userId,
+            email: user.email,
+            role: user.role
+        },
+        vendor: vendorProfile ? {
+            storeName: vendorProfile.storeName,
+            slug: vendorProfile.slug,
+            status: vendorProfile.status,
+            uuid: vendorProfile.uuid
+        } : null
+    };
+};
+
+/**
+ * Sets or updates a hashed password for a user and vendor
+ */
+const setPassword = async (userId, password) => {
+    if (!userId) {
+        const error = new Error("userId is required");
+        error.statusCode = 400;
+        throw error;
+    }
+    if (!password || typeof password !== "string" || password.length < 6) {
+        const error = new Error("Password must be at least 6 characters long");
+        error.statusCode = 400;
+        throw error;
+    }
+
+    const hashedPassword = await hashPassword(password);
+
+    const userUpdate = await User.updateOne(
+        { userId: Number(userId) },
+        { $set: { password: hashedPassword } }
+    );
+    const vendorUpdate = await Vendor.updateOne(
+        { userId: Number(userId) },
+        { $set: { password: hashedPassword } }
+    );
+
+    if (userUpdate.matchedCount === 0 && vendorUpdate.matchedCount === 0) {
+        const error = new Error("User or vendor not found");
+        error.statusCode = 404;
+        throw error;
+    }
+
+    return {
+        message: "Password set successfully after hashing",
+        statusCode: 200
+    };
+};
+
 export {
     requestOtp,
     resendOtp,
-    verifyOtpAndLogin
+    verifyOtpAndLogin,
+    loginWithPassword,
+    setPassword
 };

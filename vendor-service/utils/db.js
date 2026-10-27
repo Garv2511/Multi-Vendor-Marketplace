@@ -1,18 +1,29 @@
 import mongoose from "mongoose";
 import dotenv from "dotenv";
 import crypto from "crypto";
+import { hashPassword } from "./password.js";
 
 dotenv.config();
 
 const userSchema = new mongoose.Schema({
     userId: { type: Number, unique: true, required: true },
     email: { type: String, unique: true, required: true, lowercase: true, trim: true },
+    password: { type: String, select: false },
     role: { type: String, enum: ["admin", "vendor"], default: "vendor" }
-}, { timestamps: true });
+}, {
+    timestamps: true,
+    toJSON: {
+        transform: (doc, ret) => {
+            delete ret.password;
+            return ret;
+        }
+    }
+});
 
 const vendorSchema = new mongoose.Schema({
     userId: { type: Number, unique: true },
     email: { type: String, sparse: true, lowercase: true, trim: true },
+    password: { type: String, select: false },
     storeName: String,
     slug: { type: String, unique: true },
     kycDocs: [String],
@@ -20,7 +31,32 @@ const vendorSchema = new mongoose.Schema({
     commissionPct: { type: Number, default: 0 },
     payoutAccountId: String,
     uuid: { type: String, unique: true, default: () => crypto.randomUUID(), sparse: true },
-}, { timestamps: true });
+}, {
+    timestamps: true,
+    toJSON: {
+        transform: (doc, ret) => {
+            delete ret.password;
+            return ret;
+        }
+    }
+});
+
+// Auto-hash password on save if modified and not already hashed
+userSchema.pre("save", async function () {
+    if (this.isModified("password") && this.password) {
+        if (!this.password.startsWith("$2a$") && !this.password.startsWith("$2b$")) {
+            this.password = await hashPassword(this.password);
+        }
+    }
+});
+
+vendorSchema.pre("save", async function () {
+    if (this.isModified("password") && this.password) {
+        if (!this.password.startsWith("$2a$") && !this.password.startsWith("$2b$")) {
+            this.password = await hashPassword(this.password);
+        }
+    }
+});
 
 mongoose.connect(process.env.MONGO_URI || "mongodb://localhost:27017/vendor-service")
     .then(() => console.log("database connection successful for vendor services"))
