@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "installedBy": "skillforge-skills@1.0.0",
+  "updatedAt": "2026-10-27T06:14:22.026Z",
+  "skills": {
+    "frontend": {
+      "name": "frontend",
+      "adapter": "antigravity",
+      "targetDir": ".agents/skills/frontend",
+      "installedAt": "2026-10-27T06:14:06.889Z",
+      "version": "1.0.0",
+      "description": "Frontend architecture, modular component design, strict separation of business logic, zero-emoji policy, and Bootstrap Icons.",
+      "files": [
+        {
+          "path": ".agents/skills/frontend/SKILL.md",
+          "sha256": "52cf4a086a8998df03074b6969b4cfb64be0a583e765cec343718436e46fe0b2"
+        }
+      ]
+    },
+    "UIUX": {
+      "name": "UIUX",
+      "adapter": "antigravity",
+      "targetDir": ".agents/skills/UIUX",
+      "installedAt": "2026-10-27T06:14:22.025Z",
+      "version": "1.0.0",
+      "description": "Principal UI/UX design and Agent Experience (AX) standards covering human behavior, cognitive patterns, information architecture, navigation, and accessibility.",
+      "files": [
+        {
+          "path": ".agents/skills/UIUX/SKILL.md",
+          "sha256": "90e36cd5e7e4fbd7cbfec0b847d6252dc4c34eac9375c9c855730f99a8c73b09"
+        }
+      ]
+    }
+  }
+}
