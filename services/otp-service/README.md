@@ -111,7 +111,7 @@ flowchart TD
 ## Folder Structure
 
 ```
-OTP/
+otp-service/
 ├── .dockerignore
 ├── .env
 ├── .gitignore

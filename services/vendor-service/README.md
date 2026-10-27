@@ -60,7 +60,7 @@ sequenceDiagram
 
 ---
 
-## Environment Variables (`vendor-service/.env`)
+## Environment Variables (`services/vendor-service/.env`)
 
 ```env
 PORT=3001

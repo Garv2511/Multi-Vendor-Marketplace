@@ -94,7 +94,7 @@ const verifyOtpAndLogin = async (email, otp) => {
         throw error;
     }
 
-    // 1. Verify OTP with OTP-Authentication microservice
+    // 1. Verify OTP with the OTP service
     try {
         const response = await fetch(`${OTP_SERVICE_URL}/otp/verify`, {
             method: "POST",
