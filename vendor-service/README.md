@@ -51,7 +51,9 @@ sequenceDiagram
 | `/auth/set-password` | `POST` | `vendor`, `admin` | Sets or updates account password after bcrypt hashing |
 | `/auth/me` | `GET` | `vendor`, `admin` | Returns the authenticated user's profile and vendor data |
 | `/register` | `POST` | `vendor`, `admin` | Registers vendor store with optional hashed password |
-| `/vendor-data/:userId` | `GET` | `admin`, or owning `vendor` | Vendor can only access their own data; Admin can access any |
+| `/vendor-data/profile` | `GET`, `PUT` | `vendor`, `admin` | Retrieves or updates the authenticated vendor's profile |
+| `/vendor-data/upload-kyc` | `POST` | `vendor`, `admin` | Uploads KYC document files via Multer (PDF, PNG, JPG, WebP) |
+| `/vendor-data/:userId` | `GET`, `PUT` | `admin`, or owning `vendor` | Vendor can only access/edit their own data; Admin can access any |
 | `/admin/pending` | `GET` | `admin` | Lists all pending vendor approval requests |
 | `/admin/approve` | `POST` | `admin` | Approves a vendor application |
 | `/admin/reject` | `POST` | `admin` | Rejects a vendor application |
