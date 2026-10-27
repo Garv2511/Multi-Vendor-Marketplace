@@ -36,10 +36,9 @@ export const Input: React.FC<InputProps> = ({
           id={inputId}
           required={required}
           className={`w-full rounded-lg border px-3.5 py-2.5 text-sm transition-colors duration-150 outline-none
-            ${
-              error
-                ? 'border-red-500 text-red-900 dark:text-red-200 bg-red-50/30 dark:bg-red-950/20 focus:border-red-500 focus:ring-2 focus:ring-red-500/20'
-                : 'border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-600/20'
+            ${error
+              ? 'border-red-500 text-red-900 dark:text-red-200 bg-red-50/30 dark:bg-red-950/20 focus:ring-2 focus:ring-red-500/20'
+              : 'border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-indigo-600/20'
             }
             ${rightElement ? 'pr-11' : ''}
             disabled:opacity-60 disabled:cursor-not-allowed

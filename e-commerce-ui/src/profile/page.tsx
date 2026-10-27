@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, type FormEvent, type ChangeEvent } from 'react';
+import { useMarketplace } from '../context/MarketplaceContext';
 import {
   DocumentIcon,
   UploadIcon,
@@ -36,6 +37,7 @@ export const ProfilePage: React.FC<ProfileProps> = ({
   onNavigateToLogin,
   onNavigateToSignup,
 }) => {
+  const { loginUser, logoutUser } = useMarketplace();
   // Form State
   const [storeName, setStoreName] = useState('');
   const [slug, setSlug] = useState('');
@@ -82,7 +84,11 @@ export const ProfilePage: React.FC<ProfileProps> = ({
         const user = data.user || {};
 
         setUserId(vendor.userId || user.userId || null);
-        setEmail(vendor.email || user.email || '');
+        const resolvedEmail = vendor.email || user.email || '';
+        setEmail(resolvedEmail);
+        if (resolvedEmail) {
+          loginUser(resolvedEmail);
+        }
         setStoreName(vendor.storeName || '');
         setSlug(vendor.slug || '');
         setPayoutAccountId(vendor.payoutAccountId || '');
@@ -222,7 +228,7 @@ export const ProfilePage: React.FC<ProfileProps> = ({
   };
 
   const handleSignOut = () => {
-    localStorage.removeItem('vendor_token');
+    logoutUser();
     if (onNavigateToLogin) onNavigateToLogin();
   };
 
@@ -314,7 +320,7 @@ export const ProfilePage: React.FC<ProfileProps> = ({
           <div className="lg:col-span-7 bg-white border border-neutral-200/90 p-6 sm:p-10 shadow-[0_4px_24px_rgba(0,0,0,0.03)] space-y-6">
             <div className="flex items-center justify-between pb-4 border-b border-neutral-200">
               <div className="inline-flex items-center gap-2 text-[10px] font-semibold tracking-[0.2em] uppercase text-neutral-600">
-                <span className="w-4 h-[1px] bg-neutral-400" />
+                <span className="w-4 h-px bg-neutral-400" />
                 <span>STOREFRONT DOSSIER</span>
               </div>
               <div>{statusBadge()}</div>
@@ -341,7 +347,7 @@ export const ProfilePage: React.FC<ProfileProps> = ({
                   }}
                   required
                   placeholder="e.g. Apex Artisans Atelier"
-                  className="w-full bg-[#f4f4f2] border border-neutral-200 hover:border-neutral-300 text-neutral-900 text-xs sm:text-sm px-3.5 py-3 rounded-none transition-colors duration-150 placeholder:text-neutral-400 focus:outline-none focus:bg-white focus:border-neutral-900"
+                  className="w-full bg-[#f4f4f2] border border-neutral-200 hover:border-neutral-300 text-neutral-900 text-xs sm:text-sm px-3.5 py-3 rounded-none transition-colors duration-150 focus:outline-none"
                 />
               </div>
 
@@ -360,7 +366,7 @@ export const ProfilePage: React.FC<ProfileProps> = ({
                   onChange={(e: ChangeEvent<HTMLInputElement>) => setSlug(e.target.value)}
                   required
                   placeholder="apex-artisans"
-                  className="w-full bg-[#f4f4f2] border border-neutral-200 hover:border-neutral-300 text-neutral-900 text-xs sm:text-sm px-3.5 py-3 rounded-none transition-colors duration-150 placeholder:text-neutral-400 focus:outline-none focus:bg-white focus:border-neutral-900 font-mono text-[11px]"
+                  className="w-full bg-[#f4f4f2] border border-neutral-200 hover:border-neutral-300 text-neutral-900 text-xs sm:text-sm px-3.5 py-3 rounded-none transition-colors duration-150 focus:outline-none font-mono text-[11px]"
                 />
                 <p className="mt-1 text-[10px] text-neutral-500">
                   Public showroom URL: <code className="text-neutral-700 font-semibold">/store/{slug || 'your-store'}</code>
@@ -416,7 +422,7 @@ export const ProfilePage: React.FC<ProfileProps> = ({
                   value={payoutAccountId}
                   onChange={(e: ChangeEvent<HTMLInputElement>) => setPayoutAccountId(e.target.value)}
                   placeholder="e.g. IBAN-FR76-XXXX or Stripe Connect Account"
-                  className="w-full bg-[#f4f4f2] border border-neutral-200 hover:border-neutral-300 text-neutral-900 text-xs sm:text-sm px-3.5 py-3 rounded-none transition-colors duration-150 placeholder:text-neutral-400 focus:outline-none focus:bg-white focus:border-neutral-900"
+                  className="w-full bg-[#f4f4f2] border border-neutral-200 hover:border-neutral-300 text-neutral-900 text-xs sm:text-sm px-3.5 py-3 rounded-none transition-colors duration-150 focus:outline-none"
                 />
                 <p className="mt-1 text-[10px] text-neutral-500">
                   Acquisitions and commission disbursements are remitted to this account ID.
@@ -438,7 +444,7 @@ export const ProfilePage: React.FC<ProfileProps> = ({
                 <button
                   type="submit"
                   disabled={isSaving}
-                  className="w-full bg-black hover:bg-neutral-800 active:bg-neutral-900 text-white py-3.5 px-6 font-semibold tracking-[0.18em] uppercase text-xs transition-colors rounded-none flex items-center justify-center gap-2 shadow-sm cursor-pointer disabled:opacity-60"
+                  className="w-full hover:bg-neutral-800 active:bg-neutral-900 text-white py-3.5 px-6 font-semibold tracking-[0.18em] uppercase text-xs transition-colors rounded-none flex items-center justify-center gap-2 shadow-sm cursor-pointer disabled:opacity-60"
                 >
                   {isSaving ? (
                     <>
@@ -512,7 +518,7 @@ export const ProfilePage: React.FC<ProfileProps> = ({
 
                 {selectedFile && (
                   <div className="p-2.5 bg-white border border-neutral-300 text-xs flex items-center justify-between">
-                    <span className="truncate max-w-[200px] font-medium text-neutral-800">
+                    <span className="truncate max-w-50 font-medium text-neutral-800">
                       {selectedFile.name}
                     </span>
                     <button

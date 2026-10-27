@@ -1,11 +1,9 @@
 import React, { useState, type FormEvent, type ChangeEvent } from 'react';
 import { AuthVisualPanel } from '../../components/layout/AuthVisualPanel';
+import { useMarketplace } from '../../context/MarketplaceContext';
 import {
-  AppleIcon,
-  GoogleIcon,
   EyeIcon,
   EyeOffIcon,
-  ShieldLockIcon,
   ArrowRightIcon,
   ChevronRightIcon,
   CheckCircleIcon,
@@ -26,9 +24,9 @@ export const LoginPage: React.FC<LoginProps> = ({
   onNavigateToSignup,
   onNavigateToProfile,
 }) => {
+  const { loginUser } = useMarketplace();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [rememberMe, setRememberMe] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -65,6 +63,8 @@ export const LoginPage: React.FC<LoginProps> = ({
       if (data.token) {
         localStorage.setItem('vendor_token', data.token);
       }
+
+      loginUser(data.user?.email || payload.email, data.token);
 
       setIsSuccess(true);
       if (onNavigateToProfile) {
@@ -140,7 +140,7 @@ export const LoginPage: React.FC<LoginProps> = ({
                 onChange={(e: ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
                 placeholder="archivist@atelier-objects.com"
                 required
-                className="w-full bg-[#f4f4f2] border border-neutral-200 hover:border-neutral-300 text-neutral-900 text-xs sm:text-sm px-3.5 py-3 rounded-none transition-colors duration-150 placeholder:text-neutral-400 focus:outline-none focus:bg-white focus:border-neutral-900"
+                className="w-full bg-[#f4f4f2] border border-neutral-200 hover:border-neutral-300 text-neutral-900 text-xs sm:text-sm px-3.5 py-3 rounded-none transition-colors duration-150 focus:outline-none"
               />
             </div>
 
@@ -169,7 +169,7 @@ export const LoginPage: React.FC<LoginProps> = ({
                   onChange={(e: ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
                   placeholder="••••••••••••"
                   required
-                  className="w-full bg-[#f4f4f2] border border-neutral-200 hover:border-neutral-300 text-neutral-900 text-xs sm:text-sm px-3.5 py-3 pr-10 rounded-none transition-colors duration-150 placeholder:text-neutral-400 focus:outline-none focus:bg-white focus:border-neutral-900"
+                  className="w-full bg-[#f4f4f2] border border-neutral-200 hover:border-neutral-300 text-neutral-900 text-xs sm:text-sm px-3.5 py-3 pr-10 rounded-none transition-colors duration-150 focus:outline-none"
                 />
                 <button
                   type="button"
@@ -189,7 +189,7 @@ export const LoginPage: React.FC<LoginProps> = ({
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full bg-black hover:bg-neutral-800 active:bg-neutral-900 text-white py-3.5 px-6 font-semibold tracking-[0.18em] uppercase text-xs transition-colors rounded-none flex items-center justify-center gap-2 shadow-sm cursor-pointer disabled:opacity-60"
+                className="w-full hover:bg-neutral-800 active:bg-neutral-900 text-white py-3.5 px-6 font-semibold tracking-[0.18em] uppercase text-xs transition-colors rounded-none flex items-center justify-center gap-2 shadow-sm cursor-pointer disabled:opacity-60"
               >
                 {isLoading ? (
                   <>

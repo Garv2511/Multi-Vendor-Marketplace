@@ -213,13 +213,12 @@ export const VendorDashboardView: React.FC<{ onNavigateToProfile: () => void }> 
           <div className="flex flex-col text-right">
             <span className="text-[10px] text-neutral-400 uppercase tracking-widest">KYC Status</span>
             <span
-              className={`text-[11px] font-bold tracking-wider uppercase inline-flex items-center gap-1.5 ${
-                vendor.status === 'verified'
+              className={`text-[11px] font-bold tracking-wider uppercase inline-flex items-center gap-1.5 ${vendor.status === 'verified'
                   ? 'text-emerald-700'
                   : vendor.status === 'pending'
-                  ? 'text-amber-600'
-                  : 'text-red-600'
-              }`}
+                    ? 'text-amber-600'
+                    : 'text-red-600'
+                }`}
             >
               {vendor.status === 'verified' ? (
                 <CheckCircleIcon className="w-3.5 h-3.5" />
@@ -238,7 +237,7 @@ export const VendorDashboardView: React.FC<{ onNavigateToProfile: () => void }> 
               value={vendor.userId}
               onChange={(e) => setCurrentVendorId(Number(e.target.value))}
               aria-label="Switch Active Atelier"
-              className="bg-[#f6f6f4] border border-neutral-300 px-3 py-1.5 text-xs text-neutral-800 font-medium focus:outline-none focus:border-black rounded-none cursor-pointer"
+              className="bg-[#f6f6f4] border border-neutral-300 px-3 py-1.5 text-xs text-neutral-800 font-medium focus:outline-none rounded-none cursor-pointer"
             >
               {vendors.map((v) => (
                 <option key={v.userId} value={v.userId}>
@@ -315,11 +314,10 @@ export const VendorDashboardView: React.FC<{ onNavigateToProfile: () => void }> 
         <button
           type="button"
           onClick={() => setActiveTab('analytics')}
-          className={`flex items-center gap-2 py-3 px-2 border-b-2 transition-colors cursor-pointer whitespace-nowrap ${
-            activeTab === 'analytics'
+          className={`flex items-center gap-2 py-3 px-2 border-b-2 transition-colors cursor-pointer whitespace-nowrap ${activeTab === 'analytics'
               ? 'border-black text-black'
               : 'border-transparent text-neutral-400 hover:text-black'
-          }`}
+            }`}
         >
           <BarChartIcon />
           <span>REVENUE & ANALYTICS</span>
@@ -328,11 +326,10 @@ export const VendorDashboardView: React.FC<{ onNavigateToProfile: () => void }> 
         <button
           type="button"
           onClick={() => setActiveTab('products')}
-          className={`flex items-center gap-2 py-3 px-2 border-b-2 transition-colors cursor-pointer whitespace-nowrap ${
-            activeTab === 'products'
+          className={`flex items-center gap-2 py-3 px-2 border-b-2 transition-colors cursor-pointer whitespace-nowrap ${activeTab === 'products'
               ? 'border-black text-black'
               : 'border-transparent text-neutral-400 hover:text-black'
-          }`}
+            }`}
         >
           <PackageIcon />
           <span>INVENTORY & CATALOG ({vendorProducts.length})</span>
@@ -341,11 +338,10 @@ export const VendorDashboardView: React.FC<{ onNavigateToProfile: () => void }> 
         <button
           type="button"
           onClick={() => setActiveTab('fulfillment')}
-          className={`flex items-center gap-2 py-3 px-2 border-b-2 transition-colors cursor-pointer whitespace-nowrap ${
-            activeTab === 'fulfillment'
+          className={`flex items-center gap-2 py-3 px-2 border-b-2 transition-colors cursor-pointer whitespace-nowrap ${activeTab === 'fulfillment'
               ? 'border-black text-black'
               : 'border-transparent text-neutral-400 hover:text-black'
-          }`}
+            }`}
         >
           <TruckIcon />
           <span>SUB-ORDER FULFILLMENT ({vendorSubOrders.length})</span>
@@ -354,11 +350,10 @@ export const VendorDashboardView: React.FC<{ onNavigateToProfile: () => void }> 
         <button
           type="button"
           onClick={() => setActiveTab('payouts')}
-          className={`flex items-center gap-2 py-3 px-2 border-b-2 transition-colors cursor-pointer whitespace-nowrap ${
-            activeTab === 'payouts'
+          className={`flex items-center gap-2 py-3 px-2 border-b-2 transition-colors cursor-pointer whitespace-nowrap ${activeTab === 'payouts'
               ? 'border-black text-black'
               : 'border-transparent text-neutral-400 hover:text-black'
-          }`}
+            }`}
         >
           <BanknoteIcon />
           <span>PAYOUTS LEDGER ({vendorPayouts.length})</span>
@@ -528,22 +523,20 @@ export const VendorDashboardView: React.FC<{ onNavigateToProfile: () => void }> 
                       </td>
                       <td className="py-3 px-4">
                         <span
-                          className={`font-mono font-medium ${
-                            prod.stock <= 5 ? 'text-amber-700 font-bold' : 'text-neutral-700'
-                          }`}
+                          className={`font-mono font-medium ${prod.stock <= 5 ? 'text-amber-700 font-bold' : 'text-neutral-700'
+                            }`}
                         >
                           {prod.stock} units
                         </span>
                       </td>
                       <td className="py-3 px-4">
                         <span
-                          className={`inline-block px-2 py-0.5 text-[9px] font-bold tracking-wider uppercase ${
-                            prod.status === 'active'
+                          className={`inline-block px-2 py-0.5 text-[9px] font-bold tracking-wider uppercase ${prod.status === 'active'
                               ? 'bg-emerald-100 text-emerald-800'
                               : prod.status === 'out_of_stock'
-                              ? 'bg-neutral-200 text-neutral-700'
-                              : 'bg-amber-100 text-amber-800'
-                          }`}
+                                ? 'bg-neutral-200 text-neutral-700'
+                                : 'bg-amber-100 text-amber-800'
+                            }`}
                         >
                           {prod.status.replace('_', ' ')}
                         </span>
@@ -609,15 +602,14 @@ export const VendorDashboardView: React.FC<{ onNavigateToProfile: () => void }> 
                             Order {entry.orderId}
                           </span>
                           <span
-                            className={`px-2 py-0.5 text-[9px] font-bold tracking-wider uppercase ${
-                              sub.status === 'delivered'
+                            className={`px-2 py-0.5 text-[9px] font-bold tracking-wider uppercase ${sub.status === 'delivered'
                                 ? 'bg-emerald-100 text-emerald-800'
                                 : sub.status === 'shipped'
-                                ? 'bg-blue-100 text-blue-800'
-                                : sub.status === 'processing'
-                                ? 'bg-amber-100 text-amber-800'
-                                : 'bg-neutral-100 text-neutral-800'
-                            }`}
+                                  ? 'bg-blue-100 text-blue-800'
+                                  : sub.status === 'processing'
+                                    ? 'bg-amber-100 text-amber-800'
+                                    : 'bg-neutral-100 text-neutral-800'
+                              }`}
                           >
                             {sub.status}
                           </span>
@@ -642,8 +634,8 @@ export const VendorDashboardView: React.FC<{ onNavigateToProfile: () => void }> 
                             {sub.status === 'pending'
                               ? 'Processing'
                               : sub.status === 'processing'
-                              ? 'Shipped'
-                              : 'Delivered'}
+                                ? 'Shipped'
+                                : 'Delivered'}
                           </button>
                         )}
                       </div>
@@ -787,7 +779,7 @@ export const VendorDashboardView: React.FC<{ onNavigateToProfile: () => void }> 
                   value={formTitle}
                   onChange={(e) => setFormTitle(e.target.value)}
                   placeholder="e.g. Basalt Monolith Vessel"
-                  className="w-full bg-[#f6f6f4] border border-neutral-300 px-3 py-2 text-neutral-900 focus:outline-none focus:border-black rounded-none"
+                  className="w-full bg-[#f6f6f4] border border-neutral-300 px-3 py-2 text-neutral-900 focus:outline-none rounded-none"
                 />
               </div>
 
@@ -802,7 +794,7 @@ export const VendorDashboardView: React.FC<{ onNavigateToProfile: () => void }> 
                     required
                     value={formPrice}
                     onChange={(e) => setFormPrice(Number(e.target.value))}
-                    className="w-full bg-[#f6f6f4] border border-neutral-300 px-3 py-2 text-neutral-900 focus:outline-none focus:border-black rounded-none"
+                    className="w-full bg-[#f6f6f4] border border-neutral-300 px-3 py-2 text-neutral-900 focus:outline-none rounded-none"
                   />
                 </div>
                 <div>
@@ -815,7 +807,7 @@ export const VendorDashboardView: React.FC<{ onNavigateToProfile: () => void }> 
                     required
                     value={formStock}
                     onChange={(e) => setFormStock(Number(e.target.value))}
-                    className="w-full bg-[#f6f6f4] border border-neutral-300 px-3 py-2 text-neutral-900 focus:outline-none focus:border-black rounded-none"
+                    className="w-full bg-[#f6f6f4] border border-neutral-300 px-3 py-2 text-neutral-900 focus:outline-none rounded-none"
                   />
                 </div>
               </div>
@@ -828,7 +820,7 @@ export const VendorDashboardView: React.FC<{ onNavigateToProfile: () => void }> 
                   <select
                     value={formCategory}
                     onChange={(e) => setFormCategory(e.target.value as any)}
-                    className="w-full bg-[#f6f6f4] border border-neutral-300 px-3 py-2 text-neutral-900 focus:outline-none focus:border-black rounded-none cursor-pointer"
+                    className="w-full bg-[#f6f6f4] border border-neutral-300 px-3 py-2 text-neutral-900 focus:outline-none rounded-none cursor-pointer"
                   >
                     <option value="Living & Objects">Living & Objects</option>
                     <option value="Ceramics & Clay">Ceramics & Clay</option>
@@ -843,7 +835,7 @@ export const VendorDashboardView: React.FC<{ onNavigateToProfile: () => void }> 
                   <select
                     value={formStatus}
                     onChange={(e) => setFormStatus(e.target.value as any)}
-                    className="w-full bg-[#f6f6f4] border border-neutral-300 px-3 py-2 text-neutral-900 focus:outline-none focus:border-black rounded-none cursor-pointer"
+                    className="w-full bg-[#f6f6f4] border border-neutral-300 px-3 py-2 text-neutral-900 focus:outline-none rounded-none cursor-pointer"
                   >
                     <option value="active">Active</option>
                     <option value="draft">Draft</option>
@@ -861,7 +853,7 @@ export const VendorDashboardView: React.FC<{ onNavigateToProfile: () => void }> 
                   required
                   value={formImage}
                   onChange={(e) => setFormImage(e.target.value)}
-                  className="w-full bg-[#f6f6f4] border border-neutral-300 px-3 py-2 text-neutral-900 focus:outline-none focus:border-black rounded-none"
+                  className="w-full bg-[#f6f6f4] border border-neutral-300 px-3 py-2 text-neutral-900 focus:outline-none rounded-none"
                 />
               </div>
 
@@ -873,7 +865,7 @@ export const VendorDashboardView: React.FC<{ onNavigateToProfile: () => void }> 
                   rows={3}
                   value={formDescription}
                   onChange={(e) => setFormDescription(e.target.value)}
-                  className="w-full bg-[#f6f6f4] border border-neutral-300 px-3 py-2 text-neutral-900 focus:outline-none focus:border-black rounded-none"
+                  className="w-full bg-[#f6f6f4] border border-neutral-300 px-3 py-2 text-neutral-900 focus:outline-none rounded-none"
                 />
               </div>
 

@@ -25,7 +25,7 @@ export interface NavbarProps {
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ currentView = 'catalog', onNavigate }) => {
-  const { cartCount } = useMarketplace();
+  const { cartCount, currentUserEmail } = useMarketplace();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -108,24 +108,6 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView = 'catalog', onNavig
                   />
                 )}
               </button>
-
-              <button
-                type="button"
-                onClick={() => onNavigate('profile')}
-                className={`relative py-2 transition-colors duration-150 cursor-pointer ${
-                  currentView === 'profile'
-                    ? 'text-neutral-900'
-                    : 'text-neutral-500 hover:text-neutral-900'
-                }`}
-              >
-                <span>KYC & PROFILE</span>
-                {currentView === 'profile' && (
-                  <span
-                    className="absolute bottom-0 left-0 w-full h-[2px] bg-neutral-900"
-                    aria-hidden="true"
-                  />
-                )}
-              </button>
             </nav>
           </div>
 
@@ -194,19 +176,38 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView = 'catalog', onNavig
               )}
             </button>
 
-            {/* Account Link */}
+            {/* Profile Pic / Account (Shows Email if signed in) */}
             <button
               type="button"
-              onClick={() => onNavigate(currentView === 'login' ? 'profile' : 'login')}
-              className="flex items-center gap-2 pl-1 group cursor-pointer focus:outline-none"
-              aria-label="Account"
+              onClick={() => onNavigate('profile')}
+              className={`flex items-center gap-2 pl-1 group cursor-pointer focus:outline-none transition-colors ${
+                currentView === 'profile' ? 'text-black' : 'text-neutral-800'
+              }`}
+              aria-label={currentUserEmail || 'Account Dossier'}
+              title={
+                currentUserEmail
+                  ? `Signed in as ${currentUserEmail} • Click for KYC & Profile`
+                  : 'Account & KYC Profile'
+              }
             >
-              <div className="relative w-7 h-7 sm:w-8 sm:h-8 rounded-full overflow-hidden border border-neutral-300 bg-neutral-200 flex items-center justify-center shadow-sm group-hover:border-neutral-900 transition-colors">
+              <div
+                className={`relative w-7 h-7 sm:w-8 sm:h-8 rounded-full overflow-hidden border transition-all ${
+                  currentView === 'profile'
+                    ? 'border-neutral-900 ring-2 ring-neutral-900/30'
+                    : 'border-neutral-300 bg-neutral-200 group-hover:border-neutral-900'
+                } flex items-center justify-center shadow-sm`}
+              >
                 <UserAvatarGraphic />
               </div>
-              <span className="hidden sm:inline text-[11px] font-semibold tracking-[0.16em] uppercase text-neutral-800 group-hover:text-neutral-950">
-                {currentView === 'login' ? 'SIGN IN' : 'ACCOUNT'}
-              </span>
+              {currentUserEmail ? (
+                <span className="hidden sm:inline text-[11px] font-medium tracking-normal lowercase text-neutral-800 group-hover:text-neutral-950 max-w-[130px] md:max-w-[180px] lg:max-w-[220px] truncate">
+                  {currentUserEmail}
+                </span>
+              ) : (
+                <span className="hidden sm:inline text-[11px] font-semibold tracking-[0.16em] uppercase group-hover:text-neutral-950">
+                  ACCOUNT
+                </span>
+              )}
             </button>
 
             {/* Mobile menu button */}
@@ -261,9 +262,25 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView = 'catalog', onNavig
                 onNavigate('profile');
                 setIsMobileMenuOpen(false);
               }}
-              className="text-left py-2 px-2 text-neutral-800 hover:bg-neutral-50"
+              className="text-left py-2 px-2 text-neutral-800 hover:bg-neutral-50 flex items-center justify-between"
             >
-              KYC & PROFILE
+              <div className="flex flex-col truncate pr-2">
+                {currentUserEmail ? (
+                  <>
+                    <span className="text-xs font-semibold lowercase tracking-normal text-neutral-900 truncate">
+                      {currentUserEmail}
+                    </span>
+                    <span className="text-[10px] uppercase tracking-wider text-[#9c784e]">
+                      KYC & PROFILE
+                    </span>
+                  </>
+                ) : (
+                  <span>ACCOUNT & KYC PROFILE</span>
+                )}
+              </div>
+              <div className="w-5 h-5 rounded-full overflow-hidden border border-neutral-300 shrink-0">
+                <UserAvatarGraphic />
+              </div>
             </button>
             <button
               type="button"
@@ -280,26 +297,30 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView = 'catalog', onNavig
                 </span>
               )}
             </button>
-            <button
-              type="button"
-              onClick={() => {
-                onNavigate('signup');
-                setIsMobileMenuOpen(false);
-              }}
-              className="text-left py-2 px-2 text-neutral-800 hover:bg-neutral-50"
-            >
-              REQUEST MEMBERSHIP (SIGNUP)
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                onNavigate('login');
-                setIsMobileMenuOpen(false);
-              }}
-              className="text-left py-2 px-2 text-neutral-800 hover:bg-neutral-50"
-            >
-              ACCESS VAULT (LOGIN)
-            </button>
+            {!currentUserEmail && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onNavigate('signup');
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="text-left py-2 px-2 text-neutral-800 hover:bg-neutral-50"
+                >
+                  REQUEST MEMBERSHIP (SIGNUP)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onNavigate('login');
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="text-left py-2 px-2 text-neutral-800 hover:bg-neutral-50"
+                >
+                  ACCESS VAULT (LOGIN)
+                </button>
+              </>
+            )}
           </nav>
         </div>
       )}

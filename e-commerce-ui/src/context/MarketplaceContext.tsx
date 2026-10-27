@@ -252,6 +252,12 @@ interface MarketplaceContextType {
   updateVendorStatus: (vendorId: number, status: Vendor['status']) => void;
   updateCommissionPct: (vendorId: number, commissionPct: number) => void;
 
+  // User Authentication & Session
+  currentUserEmail: string | null;
+  isAuthenticated: boolean;
+  loginUser: (email: string, token?: string) => void;
+  logoutUser: () => void;
+
   // Payments, Escrow & Settlements
   payouts: Payout[];
   runPayoutSettlement: () => Promise<Payout[]>;
@@ -311,6 +317,28 @@ export const MarketplaceProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [currentSagaStatus, setCurrentSagaStatus] = useState<SagaStep | null>(null);
   const [currentIdempotencyKey, setCurrentIdempotencyKey] = useState<string | null>(null);
   const [isSettling, setIsSettling] = useState(false);
+
+  // User Session & Email state
+  const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(() => {
+    return localStorage.getItem('vendor_email') || null;
+  });
+
+  const isAuthenticated = Boolean(currentUserEmail || (typeof window !== 'undefined' && localStorage.getItem('vendor_token')));
+
+  const loginUser = (email: string, token?: string) => {
+    const cleanEmail = email.trim().toLowerCase();
+    setCurrentUserEmail(cleanEmail);
+    localStorage.setItem('vendor_email', cleanEmail);
+    if (token) {
+      localStorage.setItem('vendor_token', token);
+    }
+  };
+
+  const logoutUser = () => {
+    setCurrentUserEmail(null);
+    localStorage.removeItem('vendor_email');
+    localStorage.removeItem('vendor_token');
+  };
 
   // Sync to LocalStorage
   useEffect(() => {
@@ -614,6 +642,10 @@ export const MarketplaceProvider: React.FC<{ children: React.ReactNode }> = ({ c
         setCurrentVendorId,
         updateVendorStatus,
         updateCommissionPct,
+        currentUserEmail,
+        isAuthenticated,
+        loginUser,
+        logoutUser,
         payouts,
         runPayoutSettlement,
         isSettling,

@@ -1,8 +1,7 @@
 import React, { useState, useEffect, type FormEvent, type ChangeEvent } from 'react';
 import { AuthVisualPanel } from '../../components/layout/AuthVisualPanel';
+import { useMarketplace } from '../../context/MarketplaceContext';
 import {
-  AppleIcon,
-  GoogleIcon,
   EyeIcon,
   EyeOffIcon,
   ShieldLockIcon,
@@ -27,6 +26,7 @@ export const SignupPage: React.FC<SignupProps> = ({
   onNavigateToLogin,
   onNavigateToProfile,
 }) => {
+  const { loginUser } = useMarketplace();
   // Form fields
   const [storeName, setStoreName] = useState('');
   const [email, setEmail] = useState('');
@@ -182,6 +182,8 @@ export const SignupPage: React.FC<SignupProps> = ({
         throw new Error(data.message || data.error || 'Registration failed');
       }
 
+      loginUser(payload.email);
+
       setIsSuccess(true);
       if (onNavigateToProfile) {
         setTimeout(() => onNavigateToProfile(), 800);
@@ -250,7 +252,7 @@ export const SignupPage: React.FC<SignupProps> = ({
                 onChange={(e: ChangeEvent<HTMLInputElement>) => setStoreName(e.target.value)}
                 placeholder="e.g. Apex Artisans Atelier"
                 required
-                className="w-full bg-[#f4f4f2] border border-neutral-200 hover:border-neutral-300 text-neutral-900 text-xs sm:text-sm px-3.5 py-3 rounded-none transition-colors duration-150 placeholder:text-neutral-400 focus:outline-none"
+                className="w-full bg-[#f4f4f2] border border-neutral-200 hover:border-neutral-300 text-neutral-900 text-xs sm:text-sm px-3.5 py-3 rounded-none transition-colors duration-150 focus:outline-none"
               />
             </div>
 
@@ -282,7 +284,7 @@ export const SignupPage: React.FC<SignupProps> = ({
                   }}
                   placeholder="owner@atelier-objects.com"
                   required
-                  className="flex-1 bg-[#f4f4f2] border border-neutral-200 hover:border-neutral-300 text-neutral-900 text-xs sm:text-sm px-3.5 py-3 rounded-none transition-colors duration-150 placeholder:text-neutral-400 focus:outline-none focus:bg-white focus:border-neutral-900"
+                  className="flex-1 bg-[#f4f4f2] border border-neutral-200 hover:border-neutral-300 text-neutral-900 text-xs sm:text-sm px-3.5 py-3 rounded-none transition-colors duration-150 focus:outline-none"
                 />
                 <button
                   type="button"
@@ -319,7 +321,7 @@ export const SignupPage: React.FC<SignupProps> = ({
                     value={otp}
                     onChange={(e: ChangeEvent<HTMLInputElement>) => setOtp(e.target.value)}
                     placeholder="Enter 6-digit OTP code"
-                    className="flex-1 bg-white border border-neutral-300 text-neutral-900 text-xs px-3 py-2.5 rounded-none focus:outline-none focus:border-black tracking-widest font-mono"
+                    className="flex-1 bg-white border border-neutral-300 text-neutral-900 text-xs px-3 py-2.5 rounded-none focus:outline-none tracking-widest font-mono"
                   />
                   <button
                     type="button"
@@ -355,7 +357,7 @@ export const SignupPage: React.FC<SignupProps> = ({
                   onChange={(e: ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
                   placeholder="•••••••••••• (min. 6 characters)"
                   required
-                  className="w-full bg-[#f4f4f2] border border-neutral-200 hover:border-neutral-300 text-neutral-900 text-xs sm:text-sm px-3.5 py-3 pr-10 rounded-none transition-colors duration-150 placeholder:text-neutral-400 focus:outline-none focus:bg-white focus:border-neutral-900"
+                  className="w-full bg-[#f4f4f2] border border-neutral-200 hover:border-neutral-300 text-neutral-900 text-xs sm:text-sm px-3.5 py-3 pr-10 rounded-none transition-colors duration-150 focus:outline-none"
                 />
                 <button
                   type="button"
@@ -391,7 +393,7 @@ export const SignupPage: React.FC<SignupProps> = ({
                   onChange={(e: ChangeEvent<HTMLInputElement>) => setConfirmPassword(e.target.value)}
                   placeholder="••••••••••••"
                   required
-                  className="w-full bg-[#f4f4f2] border border-neutral-200 hover:border-neutral-300 text-neutral-900 text-xs sm:text-sm px-3.5 py-3 pr-10 rounded-none transition-colors duration-150 placeholder:text-neutral-400 focus:outline-none focus:bg-white focus:border-neutral-900"
+                  className="w-full bg-[#f4f4f2] border border-neutral-200 hover:border-neutral-300 text-neutral-900 text-xs sm:text-sm px-3.5 py-3 pr-10 rounded-none transition-colors duration-150 focus:outline-none"
                 />
                 <button
                   type="button"
