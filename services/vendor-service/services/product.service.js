@@ -1,4 +1,5 @@
 import { Product, Vendor } from "../utils/db.js";
+import mongoose from "mongoose";
 
 const createProduct = async (userId, productData) => {
     const vendor = await Vendor.findOne({ userId: Number(userId) });
@@ -55,5 +56,54 @@ const getMyProducts = async (userId) => {
     }));
 };
 
-export { createProduct, getMyProducts };
-export default { createProduct, getMyProducts };
+const updateProduct = async (productId, userId, productData) => {
+    if (!mongoose.isValidObjectId(productId)) {
+        const error = new Error("Invalid product ID");
+        error.statusCode = 400;
+        throw error;
+    }
+
+    const product = await Product.findOneAndUpdate(
+        {
+            _id: productId,
+            vendorId: Number(userId)
+        },
+        { $set: productData },
+        {
+            new: true,
+            runValidators: true
+        }
+    );
+
+    if (!product) {
+        const error = new Error("Product not found");
+        error.statusCode = 404;
+        throw error;
+    }
+
+    return product;
+};
+
+const deleteProduct = async (productId, userId) => {
+    if (!mongoose.isValidObjectId(productId)) {
+        const error = new Error("Invalid product ID");
+        error.statusCode = 400;
+        throw error;
+    }
+
+    const product = await Product.findOneAndDelete({
+        _id: productId,
+        vendorId: Number(userId)
+    });
+
+    if (!product) {
+        const error = new Error("Product not found");
+        error.statusCode = 404;
+        throw error;
+    }
+
+    return product;
+};
+
+export { createProduct, getMyProducts, updateProduct, deleteProduct };
+export default { createProduct, getMyProducts, updateProduct, deleteProduct };
