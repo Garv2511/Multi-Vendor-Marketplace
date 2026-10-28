@@ -12,6 +12,7 @@ const {
     toMinorUnits,
     validateOrderId
 } = await import("../utils/order.validation.js");
+const { validateAddress } = await import("../utils/address.validation.js");
 
 const response = () => {
     const result = {};
@@ -104,4 +105,20 @@ test("order identifiers must use the generated order format", () => {
         "ORD-00000000-0000-0000-0000-000000000000"
     );
     assert.throws(() => validateOrderId("not-an-order"), /Invalid order ID/);
+});
+
+test("saved address validation rejects protected fields and normalizes values", () => {
+    const address = validateAddress({
+        recipientName: "  Buyer  ",
+        phone: "+1 555 0100",
+        addressLine1: "10 Market Street",
+        city: "London",
+        state: "London",
+        postalCode: "SW1A 1AA",
+        country: "United Kingdom",
+        label: " Home "
+    });
+    assert.equal(address.recipientName, "Buyer");
+    assert.equal(address.label, "Home");
+    assert.throws(() => validateAddress({ userId: 99 }), /recipientName is required/);
 });

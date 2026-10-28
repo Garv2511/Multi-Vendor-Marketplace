@@ -59,6 +59,28 @@ const customerSchema = new mongoose.Schema({
     timestamps: true
 });
 
+const savedAddressSchema = new mongoose.Schema({
+    addressId: { type: mongoose.Schema.Types.ObjectId, default: () => new mongoose.Types.ObjectId() },
+    userId: { type: Number, required: true, index: true },
+    recipientName: { type: String, required: true, trim: true, maxlength: 120 },
+    phone: { type: String, required: true, trim: true, maxlength: 30 },
+    addressLine1: { type: String, required: true, trim: true, maxlength: 200 },
+    addressLine2: { type: String, trim: true, maxlength: 200 },
+    city: { type: String, required: true, trim: true, maxlength: 100 },
+    state: { type: String, required: true, trim: true, maxlength: 100 },
+    postalCode: { type: String, required: true, trim: true, maxlength: 20 },
+    country: { type: String, required: true, trim: true, maxlength: 100 },
+    label: { type: String, trim: true, maxlength: 40 },
+    isDefault: { type: Boolean, default: false, required: true }
+}, {
+    timestamps: true,
+    _id: false
+});
+savedAddressSchema.index(
+    { userId: 1, isDefault: 1 },
+    { unique: true, partialFilterExpression: { isDefault: true } }
+);
+
 const cartItemSchema = new mongoose.Schema({
     productId: { type: mongoose.Schema.Types.ObjectId, ref: "Product", required: true },
     quantity: { type: Number, required: true, min: 1, validate: Number.isInteger }
@@ -153,8 +175,9 @@ const User = mongoose.model("User", userSchema);
 const Vendor = mongoose.model("Vendor", vendorSchema);
 const Product = mongoose.model("Product", productSchema);
 const Customer = mongoose.model("Customer", customerSchema);
+const SavedAddress = mongoose.model("SavedAddress", savedAddressSchema);
 const Cart = mongoose.model("Cart", cartSchema);
 const Order = mongoose.model("Order", orderSchema);
 
-export { User, Vendor, Product, Customer, Cart, Order };
+export { User, Vendor, Product, Customer, SavedAddress, Cart, Order };
 export default Vendor;

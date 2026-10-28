@@ -5,7 +5,8 @@ import {
     cancelOrder
 } from "../services/order.service.js";
 import { parsePagination } from "../utils/catalog.validation.js";
-import { validateDeliveryAddress, validateOrderId } from "../utils/order.validation.js";
+import { addressSnapshot, validateDeliveryAddress, validateOrderId } from "../utils/order.validation.js";
+import { resolveOwnedAddress } from "../services/customer.service.js";
 
 const userIdFromRequest = (req, res) => {
     const userId = req.user?.userId;
@@ -20,7 +21,15 @@ export const createOrderController = async (req, res) => {
     try {
         const userId = userIdFromRequest(req, res);
         if (userId === null) return;
-        const deliveryAddress = validateDeliveryAddress(req.body?.deliveryAddress);
+        const { deliveryAddress: suppliedAddress, savedAddressId } = req.body || {};
+        if (suppliedAddress !== undefined && savedAddressId !== undefined) {
+            return res.status(400).json({
+                message: "Provide either deliveryAddress or savedAddressId, not both"
+            });
+        }
+        const deliveryAddress = savedAddressId !== undefined
+            ? addressSnapshot(await resolveOwnedAddress(userId, savedAddressId))
+            : validateDeliveryAddress(suppliedAddress);
         const order = await createOrder(userId, deliveryAddress);
         return res.status(201).json({ message: "Order created successfully", data: order });
     } catch (error) {

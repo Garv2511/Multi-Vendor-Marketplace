@@ -70,6 +70,16 @@ const toMinorUnits = (price) => {
 };
 
 const fromMinorUnits = (minorUnits) => minorUnits / 100;
+const addressSnapshot = (address) => ({
+    recipientName: address.recipientName,
+    phone: address.phone,
+    addressLine1: address.addressLine1,
+    ...(address.addressLine2 ? { addressLine2: address.addressLine2 } : {}),
+    city: address.city,
+    state: address.state,
+    postalCode: address.postalCode,
+    country: address.country
+});
 
 const validateOrderId = (orderId) => {
     if (typeof orderId !== "string" || !/^ORD-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(orderId)) {
@@ -83,6 +93,7 @@ const validateOrderId = (orderId) => {
 export {
     ADDRESS_FIELDS,
     validateDeliveryAddress,
+    addressSnapshot,
     toMinorUnits,
     fromMinorUnits,
     validateOrderId

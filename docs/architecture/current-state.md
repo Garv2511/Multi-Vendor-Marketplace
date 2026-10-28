@@ -64,6 +64,11 @@ frontend
 The directory reorganization does not change these ports, route paths, or
 service responsibilities.
 
+The vendor service also owns customer profiles, saved delivery addresses,
+persistent carts, and customer order checkout preparation. Saved addresses
+are customer-owned records; orders retain immutable delivery-address
+snapshots.
+
 ## Not implemented as backend services yet
 
 - payment provider integration

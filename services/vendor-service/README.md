@@ -64,6 +64,10 @@ sequenceDiagram
 | `/products/:productId` | `PATCH` | `vendor` | Updates an owned product |
 | `/products/:productId` | `DELETE` | `vendor` | Deletes an owned product |
 | `/customers/me` | `GET` | `customer` | Returns the authenticated customer profile |
+| `/customers/me` | `PATCH` | `customer` | Updates the authenticated customer's display name |
+| `/customers/me/addresses` | `GET`, `POST` | `customer` | Lists or creates saved addresses |
+| `/customers/me/addresses/:addressId` | `GET`, `PATCH`, `DELETE` | `customer` | Reads, updates, or deletes an owned saved address |
+| `/customers/me/addresses/:addressId/default` | `PATCH` | `customer` | Sets an owned address as default |
 | `/catalog/products` | `GET` | Public | Lists products from approved vendors |
 | `/catalog/products/:productId` | `GET` | Public | Returns one product from an approved vendor |
 | `/cart` | `GET`, `DELETE` | `customer` | Fetches or clears the authenticated customer's cart |
@@ -498,3 +502,59 @@ restores each item's stock once. Paid, already cancelled, or otherwise
 ambiguous orders return `409`; no refund is simulated. Cancellation also
 requires MongoDB transaction support and returns `503` without changing state
 when transactions are unavailable.
+
+### 14. Customer Profile and Saved Addresses
+
+`GET /customers/me` returns the profile for the authenticated customer.
+`PATCH /customers/me` accepts only `displayName`; email, user ID, role,
+password, OTP state, and verification state are protected.
+
+```http
+PATCH /customers/me
+Authorization: Bearer CUSTOMER_JWT
+Content-Type: application/json
+
+{ "displayName": "A Buyer" }
+```
+
+Saved addresses are stored separately and owned by `userId`. Supported fields
+are `recipientName`, `phone`, `addressLine1`, optional `addressLine2`,
+`city`, `state`, `postalCode`, `country`, optional `label`, and optional
+`isDefault`.
+
+```http
+POST /customers/me/addresses
+Authorization: Bearer CUSTOMER_JWT
+Content-Type: application/json
+
+{
+  "recipientName": "A Buyer",
+  "phone": "+1 555 0100",
+  "addressLine1": "10 Market Street",
+  "city": "London",
+  "state": "London",
+  "postalCode": "SW1A 1AA",
+  "country": "United Kingdom",
+  "label": "Home",
+  "isDefault": true
+}
+```
+
+The first saved address becomes default automatically. Setting another
+address as default unsets the previous default. Address lists return the
+default address first. Deleting the default selects the newest remaining
+address as the replacement; deleting the only address leaves no default.
+The database has a partial unique index so each customer can have at most one
+default address. Concurrent default changes may return `409` and should be
+retried.
+
+Address IDs and customer ownership are always resolved server-side. Invalid
+IDs return `400`; missing or inaccessible addresses return `404`; unknown or
+protected fields return `400`.
+
+Order delivery addresses remain immutable snapshots. Existing order history
+is not changed when a saved address is edited or deleted. Checkout continues
+to accept the existing validated `deliveryAddress` object. It also accepts
+`savedAddressId` instead; that ID is resolved only against the authenticated
+customer's addresses and copied into the order snapshot. A request cannot
+send both fields.
