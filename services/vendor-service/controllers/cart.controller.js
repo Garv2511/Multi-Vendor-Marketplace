@@ -5,6 +5,7 @@ import {
     removeCartItem,
     clearCart
 } from "../services/cart.service.js";
+import { isValidProductIdInput, isPositiveInteger } from "../utils/cart.validation.js";
 
 const getCustomerUserId = (req, res) => {
     const userId = req.user?.userId;
@@ -16,7 +17,7 @@ const getCustomerUserId = (req, res) => {
 };
 
 const validateProductId = (productId, res) => {
-    if (typeof productId !== "string" || !productId.trim()) {
+    if (!isValidProductIdInput(productId)) {
         res.status(400).json({ message: "productId is required" });
         return false;
     }
@@ -24,7 +25,7 @@ const validateProductId = (productId, res) => {
 };
 
 const validateQuantity = (quantity, res) => {
-    if (typeof quantity !== "number" || !Number.isInteger(quantity) || quantity <= 0) {
+    if (!isPositiveInteger(quantity)) {
         res.status(400).json({ message: "quantity must be a positive integer" });
         return false;
     }

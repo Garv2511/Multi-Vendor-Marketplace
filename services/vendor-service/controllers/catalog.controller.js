@@ -1,27 +1,8 @@
 import {
-    DEFAULT_PAGE_SIZE,
-    MAX_PAGE_SIZE,
     getCatalogProducts,
     getCatalogProduct
 } from "../services/catalog.service.js";
-
-const parsePagination = (query) => {
-    const page = query.page === undefined ? 1 : Number(query.page);
-    const pageSize = query.pageSize === undefined ? DEFAULT_PAGE_SIZE : Number(query.pageSize);
-
-    if (!Number.isInteger(page) || page < 1) {
-        const error = new Error("page must be a positive integer");
-        error.statusCode = 400;
-        throw error;
-    }
-    if (!Number.isInteger(pageSize) || pageSize < 1 || pageSize > MAX_PAGE_SIZE) {
-        const error = new Error(`pageSize must be an integer between 1 and ${MAX_PAGE_SIZE}`);
-        error.statusCode = 400;
-        throw error;
-    }
-
-    return { page, pageSize };
-};
+import { parsePagination } from "../utils/catalog.validation.js";
 
 export const getCatalogProductsController = async (req, res) => {
     try {

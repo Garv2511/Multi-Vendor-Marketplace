@@ -1,6 +1,5 @@
 import jwt from "jsonwebtoken";
-
-const JWT_SECRET = process.env.JWT_SECRET || "super_secret_vendor_service_jwt_key_2026";
+import { JWT_SECRET, JWT_VERIFY_OPTIONS } from "../utils/auth-config.js";
 
 /**
  * Middleware to verify JWT authentication token
@@ -15,7 +14,7 @@ export const authenticate = (req, res, next) => {
         }
 
         const token = authHeader.split(" ")[1];
-        const decoded = jwt.verify(token, JWT_SECRET);
+        const decoded = jwt.verify(token, JWT_SECRET, JWT_VERIFY_OPTIONS);
 
         req.user = decoded; // { userId, email, role, iat, exp }
         next();

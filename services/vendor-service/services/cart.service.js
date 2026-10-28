@@ -33,12 +33,35 @@ const getApprovedProduct = async (productId) => {
     return { product, vendor };
 };
 
-const getOrCreateCart = async (userId) => {
-    return Cart.findOneAndUpdate(
-        { userId: Number(userId) },
-        { $setOnInsert: { userId: Number(userId), items: [] } },
-        { new: true, upsert: true, setDefaultsOnInsert: true }
-    );
+const getOrCreateCart = async (userId) => Cart.findOneAndUpdate(
+    { userId: Number(userId) },
+    { $setOnInsert: { userId: Number(userId), items: [] } },
+    { new: true, upsert: true, setDefaultsOnInsert: true }
+);
+
+const mutateCart = async (userId, mutation) => {
+    const normalizedUserId = Number(userId);
+
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+        const cart = await getOrCreateCart(normalizedUserId);
+        const nextItems = mutation(cart.items.map((item) => ({
+            productId: item.productId,
+            quantity: item.quantity
+        })));
+
+        const result = await Cart.updateOne(
+            { _id: cart._id, __v: cart.__v },
+            { $set: { items: nextItems }, $inc: { __v: 1 } }
+        );
+
+        if (result.matchedCount === 1) {
+            return Cart.findById(cart._id);
+        }
+    }
+
+    const error = new Error("Cart changed concurrently; please retry");
+    error.statusCode = 409;
+    throw error;
 };
 
 const serializeCart = async (cart) => {
@@ -61,7 +84,7 @@ const serializeCart = async (cart) => {
         const productId = item.productId.toString();
         const product = productsById.get(productId);
         const vendor = product ? vendorsById.get(product.vendorId) : null;
-        const available = Boolean(product && vendor);
+        const available = Boolean(product && vendor && item.quantity <= product.stockQuantity);
         const itemTotal = available ? product.price * item.quantity : 0;
 
         if (available) total += itemTotal;
@@ -88,10 +111,7 @@ const serializeCart = async (cart) => {
     };
 };
 
-const getCart = async (userId) => {
-    const cart = await getOrCreateCart(userId);
-    return serializeCart(cart);
-};
+const getCart = async (userId) => serializeCart(await getOrCreateCart(userId));
 
 const addCartItem = async (userId, productId, quantity) => {
     const { product } = await getApprovedProduct(productId);
@@ -101,22 +121,23 @@ const addCartItem = async (userId, productId, quantity) => {
         throw error;
     }
 
-    const cart = await getOrCreateCart(userId);
-    const existingItem = cart.items.find((item) => item.productId.toString() === product._id.toString());
-    const resultingQuantity = existingItem ? existingItem.quantity + quantity : quantity;
+    const cart = await mutateCart(userId, (items) => {
+        const existingItem = items.find((item) => item.productId.toString() === product._id.toString());
+        const resultingQuantity = existingItem ? existingItem.quantity + quantity : quantity;
 
-    if (resultingQuantity > product.stockQuantity) {
-        const error = new Error(`Requested quantity exceeds available stock of ${product.stockQuantity}`);
-        error.statusCode = 409;
-        throw error;
-    }
+        if (resultingQuantity > product.stockQuantity) {
+            const error = new Error(`Requested quantity exceeds available stock of ${product.stockQuantity}`);
+            error.statusCode = 409;
+            throw error;
+        }
 
-    if (existingItem) {
-        existingItem.quantity = resultingQuantity;
-    } else {
-        cart.items.push({ productId: product._id, quantity });
-    }
-    await cart.save();
+        if (existingItem) {
+            existingItem.quantity = resultingQuantity;
+        } else {
+            items.push({ productId: product._id, quantity });
+        }
+        return items;
+    });
 
     return serializeCart(cart);
 };
@@ -129,16 +150,17 @@ const updateCartItem = async (userId, productId, quantity) => {
         throw error;
     }
 
-    const cart = await getOrCreateCart(userId);
-    const item = cart.items.find((entry) => entry.productId.toString() === product._id.toString());
-    if (!item) {
-        const error = new Error("Cart item not found");
-        error.statusCode = 404;
-        throw error;
-    }
+    const cart = await mutateCart(userId, (items) => {
+        const item = items.find((entry) => entry.productId.toString() === product._id.toString());
+        if (!item) {
+            const error = new Error("Cart item not found");
+            error.statusCode = 404;
+            throw error;
+        }
+        item.quantity = quantity;
+        return items;
+    });
 
-    item.quantity = quantity;
-    await cart.save();
     return serializeCart(cart);
 };
 
@@ -147,29 +169,21 @@ const removeCartItem = async (userId, productId) => {
         throw invalidProductIdError();
     }
 
-    const cart = await Cart.findOne({ userId: Number(userId) });
-    if (!cart) {
-        const error = new Error("Cart item not found");
-        error.statusCode = 404;
-        throw error;
-    }
+    const cart = await mutateCart(userId, (items) => {
+        const nextItems = items.filter((item) => item.productId.toString() !== productId);
+        if (nextItems.length === items.length) {
+            const error = new Error("Cart item not found");
+            error.statusCode = 404;
+            throw error;
+        }
+        return nextItems;
+    });
 
-    const itemIndex = cart.items.findIndex((item) => item.productId.toString() === productId);
-    if (itemIndex === -1) {
-        const error = new Error("Cart item not found");
-        error.statusCode = 404;
-        throw error;
-    }
-
-    cart.items.splice(itemIndex, 1);
-    await cart.save();
     return serializeCart(cart);
 };
 
 const clearCart = async (userId) => {
-    const cart = await getOrCreateCart(userId);
-    cart.items = [];
-    await cart.save();
+    const cart = await mutateCart(userId, () => []);
     return serializeCart(cart);
 };
 

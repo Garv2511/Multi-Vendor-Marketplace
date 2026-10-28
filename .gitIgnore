@@ -1,3 +1,4 @@
 node_modules
 .env
 .env.local
+services/vendor-service/.env

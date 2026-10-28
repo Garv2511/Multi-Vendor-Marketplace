@@ -1,8 +1,6 @@
 import mongoose from "mongoose";
 import { Product, Vendor } from "../utils/db.js";
-
-const DEFAULT_PAGE_SIZE = 20;
-const MAX_PAGE_SIZE = 50;
+import { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from "../utils/catalog.validation.js";
 
 const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 

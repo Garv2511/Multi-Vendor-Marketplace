@@ -1,10 +1,9 @@
 import jwt from "jsonwebtoken";
 import { User, Vendor, Customer } from "../utils/db.js";
 import { hashPassword, comparePassword } from "../utils/password.js";
+import { JWT_SECRET, JWT_SIGN_OPTIONS } from "../utils/auth-config.js";
 
 const OTP_SERVICE_URL = process.env.OTP_SERVICE_URL || "http://localhost:3000";
-const JWT_SECRET = process.env.JWT_SECRET || "super_secret_vendor_service_jwt_key_2026";
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "7d";
 
 /**
  * Checks if the given email is configured as an admin in ADMIN_EMAILS environment variable
@@ -151,7 +150,7 @@ const verifyOtpAndLogin = async (email, otp) => {
         role: user.role
     };
 
-    const token = jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+    const token = jwt.sign(payload, JWT_SECRET, JWT_SIGN_OPTIONS);
 
     return {
         message: "Authentication successful",
@@ -217,7 +216,7 @@ const verifyCustomerOtp = async (email, otp, displayName) => {
         userId: user.userId,
         email: user.email,
         role: "customer"
-    }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+    }, JWT_SECRET, JWT_SIGN_OPTIONS);
 
     return {
         message: "Customer authentication successful",
@@ -295,7 +294,7 @@ const loginWithPassword = async (email, password) => {
         role: user.role
     };
 
-    const token = jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+    const token = jwt.sign(payload, JWT_SECRET, JWT_SIGN_OPTIONS);
 
     return {
         message: "Login successful",

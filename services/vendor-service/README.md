@@ -78,13 +78,14 @@ sequenceDiagram
 PORT=3001
 MONGO_URI=mongodb://localhost:27017/vendor-service
 OTP_SERVICE_URL=http://localhost:3000
-JWT_SECRET=super_secret_vendor_service_jwt_key_2026
+JWT_SECRET=replace-with-a-random-secret-at-least-32-characters
 JWT_EXPIRES_IN=7d
 ADMIN_EMAILS=admin@market.com,admin@example.com
 ```
 
 - **`OTP_SERVICE_URL`**: Base URL of the running OTP microservice (default: `http://localhost:3000`).
 - **`ADMIN_EMAILS`**: Comma-separated list of emails that are automatically granted the `admin` role upon OTP verification. All other emails default to `vendor`.
+- **`JWT_SECRET`**: Required secret of at least 32 characters. The service refuses to start when it is missing or too weak.
 - **`PORT`**: Set to `3001` so it does not collide with the OTP microservice on port `3000`.
 
 ---
