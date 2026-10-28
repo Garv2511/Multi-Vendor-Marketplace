@@ -71,6 +71,63 @@ const cartSchema = new mongoose.Schema({
     timestamps: true
 });
 
+const orderItemSchema = new mongoose.Schema({
+    productId: { type: mongoose.Schema.Types.ObjectId, ref: "Product", required: true },
+    vendorId: { type: Number, required: true },
+    title: { type: String, required: true, trim: true },
+    storeName: { type: String, required: true, trim: true },
+    unitPriceMinor: { type: Number, required: true, min: 0, validate: Number.isInteger },
+    quantity: { type: Number, required: true, min: 1, validate: Number.isInteger },
+    lineTotalMinor: { type: Number, required: true, min: 0, validate: Number.isInteger }
+}, { _id: false });
+
+const orderVendorGroupSchema = new mongoose.Schema({
+    vendorId: { type: Number, required: true },
+    storeName: { type: String, required: true, trim: true },
+    itemProductIds: {
+        type: [{ type: mongoose.Schema.Types.ObjectId, ref: "Product" }],
+        required: true
+    },
+    subtotalMinor: { type: Number, required: true, min: 0, validate: Number.isInteger }
+}, { _id: false });
+
+const deliveryAddressSchema = new mongoose.Schema({
+    recipientName: { type: String, required: true, trim: true, maxlength: 120 },
+    phone: { type: String, required: true, trim: true, maxlength: 30 },
+    addressLine1: { type: String, required: true, trim: true, maxlength: 200 },
+    addressLine2: { type: String, trim: true, maxlength: 200 },
+    city: { type: String, required: true, trim: true, maxlength: 100 },
+    state: { type: String, required: true, trim: true, maxlength: 100 },
+    postalCode: { type: String, required: true, trim: true, maxlength: 20 },
+    country: { type: String, required: true, trim: true, maxlength: 100 }
+}, { _id: false });
+
+const orderSchema = new mongoose.Schema({
+    orderId: { type: String, unique: true, required: true, index: true },
+    customerUserId: { type: Number, required: true, index: true },
+    items: { type: [orderItemSchema], required: true, minlength: 1 },
+    vendorGroups: { type: [orderVendorGroupSchema], required: true, minlength: 1 },
+    subtotalMinor: { type: Number, required: true, min: 0, validate: Number.isInteger },
+    totalMinor: { type: Number, required: true, min: 0, validate: Number.isInteger },
+    currency: { type: String, required: true, enum: ["USD"], default: "USD" },
+    status: {
+        type: String,
+        enum: ["pending", "processing", "completed", "cancelled"],
+        default: "pending",
+        required: true
+    },
+    paymentStatus: {
+        type: String,
+        enum: ["pending", "paid", "failed", "refunded"],
+        default: "pending",
+        required: true
+    },
+    inventoryRestored: { type: Boolean, default: false, required: true },
+    deliveryAddress: { type: deliveryAddressSchema, required: true }
+}, {
+    timestamps: true
+});
+
 // Auto-hash password on save if modified and not already hashed
 userSchema.pre("save", async function () {
     if (this.isModified("password") && this.password) {
@@ -97,6 +154,7 @@ const Vendor = mongoose.model("Vendor", vendorSchema);
 const Product = mongoose.model("Product", productSchema);
 const Customer = mongoose.model("Customer", customerSchema);
 const Cart = mongoose.model("Cart", cartSchema);
+const Order = mongoose.model("Order", orderSchema);
 
-export { User, Vendor, Product, Customer, Cart };
+export { User, Vendor, Product, Customer, Cart, Order };
 export default Vendor;

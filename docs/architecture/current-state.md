@@ -66,7 +66,6 @@ service responsibilities.
 
 ## Not implemented as backend services yet
 
-- order and vendor sub-order API
 - payment provider integration
 - refund processing
 - payout settlement

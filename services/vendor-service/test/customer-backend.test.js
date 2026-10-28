@@ -7,6 +7,11 @@ process.env.JWT_SECRET = "test-secret-that-is-at-least-32-characters-long";
 const { authenticate, authorizeRoles } = await import("../middlewares/auth.js");
 const { isPositiveInteger, isValidProductIdInput } = await import("../utils/cart.validation.js");
 const { parsePagination } = await import("../utils/catalog.validation.js");
+const {
+    validateDeliveryAddress,
+    toMinorUnits,
+    validateOrderId
+} = await import("../utils/order.validation.js");
 
 const response = () => {
     const result = {};
@@ -70,4 +75,33 @@ test("catalog pagination rejects invalid and oversized pages", () => {
     assert.deepEqual(parsePagination({}), { page: 1, pageSize: 20 });
     assert.throws(() => parsePagination({ page: "0" }), /positive integer/);
     assert.throws(() => parsePagination({ pageSize: "51" }), /between 1 and 50/);
+});
+
+test("delivery addresses are normalized and required fields are enforced", () => {
+    const address = validateDeliveryAddress({
+        recipientName: "  Buyer  ",
+        phone: "+1 555 0100",
+        addressLine1: "10 Market Street",
+        city: "London",
+        state: "London",
+        postalCode: "SW1A 1AA",
+        country: "United Kingdom"
+    });
+    assert.equal(address.recipientName, "Buyer");
+    assert.throws(() => validateDeliveryAddress({}), /recipientName is required/);
+});
+
+test("order money uses integer minor units", () => {
+    assert.equal(toMinorUnits(79.99), 7999);
+    assert.equal(toMinorUnits(0), 0);
+    assert.throws(() => toMinorUnits(Number.NaN), /price is invalid/);
+    assert.throws(() => toMinorUnits(-1), /price is invalid/);
+});
+
+test("order identifiers must use the generated order format", () => {
+    assert.equal(
+        validateOrderId("ORD-00000000-0000-0000-0000-000000000000"),
+        "ORD-00000000-0000-0000-0000-000000000000"
+    );
+    assert.throws(() => validateOrderId("not-an-order"), /Invalid order ID/);
 });

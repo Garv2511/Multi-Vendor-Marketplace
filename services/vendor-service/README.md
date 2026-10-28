@@ -69,6 +69,9 @@ sequenceDiagram
 | `/cart` | `GET`, `DELETE` | `customer` | Fetches or clears the authenticated customer's cart |
 | `/cart/items` | `POST` | `customer` | Adds to a customer's cart, increasing existing quantity |
 | `/cart/items/:productId` | `PATCH`, `DELETE` | `customer` | Updates or removes one cart item |
+| `/orders` | `POST`, `GET` | `customer` | Creates an order from the cart or lists customer orders |
+| `/orders/:orderId` | `GET` | `customer` | Returns one order owned by the customer |
+| `/orders/:orderId/cancel` | `POST` | `customer` | Cancels an eligible pending unpaid order |
 
 ---
 
@@ -378,3 +381,120 @@ An empty cart returns `items: []` and `total: 0`. Cart endpoints return
 `400` for malformed IDs or quantities, `404` for missing/unavailable
 products or absent cart items, and `409` when requested quantity exceeds
 current stock.
+
+### 13. Customer Orders and Checkout
+
+Orders use the same `USD` currency contract as the catalogue and cart. Prices
+are converted to integer cents before calculation and storage to avoid
+floating-point accumulation errors. Responses expose dollar values, while
+the database stores `unitPriceMinor`, `lineTotalMinor`, `subtotalMinor`, and
+`totalMinor`.
+
+#### Create an order
+
+```http
+POST /orders
+Authorization: Bearer CUSTOMER_JWT
+Content-Type: application/json
+
+{
+  "deliveryAddress": {
+    "recipientName": "A Buyer",
+    "phone": "+1 555 0100",
+    "addressLine1": "10 Market Street",
+    "addressLine2": "Apartment 4",
+    "city": "London",
+    "state": "London",
+    "postalCode": "SW1A 1AA",
+    "country": "United Kingdom"
+  }
+}
+```
+
+The server loads the authenticated customer's cart, revalidates every product
+and approved vendor, atomically decrements stock, creates the order, and
+clears the cart. The order starts with `status: "pending"` and
+`paymentStatus: "pending"`. It never accepts client-supplied prices, totals,
+customer IDs, vendor IDs, or payment status.
+
+The response contains immutable item snapshots:
+
+```json
+{
+  "message": "Order created successfully",
+  "data": {
+    "orderId": "ORD-00000000-0000-0000-0000-000000000000",
+    "items": [
+      {
+        "productId": "653abc1234567890abcdef12",
+        "vendorId": 1001,
+        "title": "Wireless Headphones",
+        "storeName": "Approved Store",
+        "unitPrice": 79.99,
+        "quantity": 2,
+        "lineTotal": 159.98
+      }
+    ],
+    "vendorGroups": [
+      {
+        "vendorId": 1001,
+        "storeName": "Approved Store",
+        "itemProductIds": ["653abc1234567890abcdef12"],
+        "subtotal": 159.98
+      }
+    ],
+    "subtotal": 159.98,
+    "total": 159.98,
+    "currency": "USD",
+    "status": "pending",
+    "paymentStatus": "pending",
+    "deliveryAddress": {
+      "recipientName": "A Buyer",
+      "phone": "+1 555 0100",
+      "addressLine1": "10 Market Street",
+      "city": "London",
+      "state": "London",
+      "postalCode": "SW1A 1AA",
+      "country": "United Kingdom"
+    }
+  }
+}
+```
+
+`vendorGroups` provides the future vendor-fulfillment boundary while keeping
+one customer checkout/order. Vendor identity and store names are resolved
+from approved vendor records, never from the request.
+
+Checkout requires MongoDB transaction support (replica set or sharded
+deployment). If transactions are unavailable, the endpoint returns `503`
+without creating an order, decrementing stock, or clearing the cart. Stock
+decrements also use conditional updates requiring sufficient stock,
+protecting against overselling during concurrent transactions.
+
+#### List and retrieve orders
+
+```http
+GET /orders?page=1&pageSize=20
+Authorization: Bearer CUSTOMER_JWT
+```
+
+```http
+GET /orders/ORD-00000000-0000-0000-0000-000000000000
+Authorization: Bearer CUSTOMER_JWT
+```
+
+Both operations are scoped by the authenticated customer's `userId`.
+
+#### Cancellation
+
+```http
+POST /orders/ORD-00000000-0000-0000-0000-000000000000/cancel
+Authorization: Bearer CUSTOMER_JWT
+```
+
+Only an order with `status: "pending"` and `paymentStatus: "pending"` can be
+cancelled. Cancellation atomically changes the order to `cancelled` and
+restores each item's stock once. Paid, already cancelled, or otherwise
+ambiguous orders return `409`; no refund is simulated. Cancellation also
+requires MongoDB transaction support and returns `503` without changing state
+when transactions are unavailable.
