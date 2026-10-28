@@ -5,9 +5,10 @@
 ### Frontend
 
 `frontend/marketplace-ui` is a React, TypeScript, and Vite application. Its
-authentication and vendor profile screens call the vendor service. Catalogue,
-cart, checkout, order, and payout screens currently use seeded data and
-browser `localStorage`.
+authentication and vendor profile screens call the vendor service. The
+customer cart UI still uses seeded data and browser `localStorage`; the
+backend now exposes a persistent customer cart API for future integration.
+Catalogue, checkout, order, and payout screens currently use seeded data.
 
 ### Vendor service
 
@@ -65,7 +66,6 @@ service responsibilities.
 
 ## Not implemented as backend services yet
 
-- persistent customer cart
 - order and vendor sub-order API
 - payment provider integration
 - refund processing

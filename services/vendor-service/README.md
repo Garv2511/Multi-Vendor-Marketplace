@@ -66,6 +66,9 @@ sequenceDiagram
 | `/customers/me` | `GET` | `customer` | Returns the authenticated customer profile |
 | `/catalog/products` | `GET` | Public | Lists products from approved vendors |
 | `/catalog/products/:productId` | `GET` | Public | Returns one product from an approved vendor |
+| `/cart` | `GET`, `DELETE` | `customer` | Fetches or clears the authenticated customer's cart |
+| `/cart/items` | `POST` | `customer` | Adds to a customer's cart, increasing existing quantity |
+| `/cart/items/:productId` | `PATCH`, `DELETE` | `customer` | Updates or removes one cart item |
 
 ---
 
@@ -282,3 +285,95 @@ GET /catalog/products?page=1&pageSize=20&search=headphones
 `pageSize` is limited to 50. Product detail requests use the same public
 shape and return `404` when the product is missing or its vendor is not
 approved.
+
+### 12. Persistent Customer Cart
+
+The cart is stored in MongoDB using one `Cart` document per customer
+`userId`. Each item stores only a `productId` reference and a positive
+`quantity`. Prices, stock, and store names are resolved from the current
+`Product` and approved `Vendor` documents; clients cannot provide those
+values.
+
+Adding an existing item increases its quantity. The resulting quantity must
+not exceed current stock. Cart reads revalidate product availability and
+prices. If a product was deleted or its vendor is no longer approved, the
+item remains in the cart with `available: false`, `currentPrice: null`,
+`currentStock: 0`, and contributes zero to `total` until removed or the
+product becomes available again.
+
+#### Get the cart
+
+```http
+GET /cart
+Authorization: Bearer CUSTOMER_JWT
+```
+
+#### Add an item
+
+```http
+POST /cart/items
+Authorization: Bearer CUSTOMER_JWT
+Content-Type: application/json
+
+{
+  "productId": "653abc1234567890abcdef12",
+  "quantity": 2
+}
+```
+
+#### Update an item
+
+```http
+PATCH /cart/items/653abc1234567890abcdef12
+Authorization: Bearer CUSTOMER_JWT
+Content-Type: application/json
+
+{ "quantity": 3 }
+```
+
+#### Remove an item
+
+```http
+DELETE /cart/items/653abc1234567890abcdef12
+Authorization: Bearer CUSTOMER_JWT
+```
+
+#### Clear the cart
+
+```http
+DELETE /cart
+Authorization: Bearer CUSTOMER_JWT
+```
+
+Cart mutation responses use the following shape:
+
+```json
+{
+  "message": "Cart item added successfully",
+  "data": {
+    "cartId": "cart-mongo-id",
+    "items": [
+      {
+        "productId": "653abc1234567890abcdef12",
+        "title": "Wireless Headphones",
+        "description": "Noise-cancelling headphones",
+        "currentPrice": 79.99,
+        "quantity": 2,
+        "currentStock": 25,
+        "storeName": "Approved Store",
+        "available": true,
+        "itemTotal": 159.98
+      }
+    ],
+    "total": 159.98,
+    "currency": "USD",
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  }
+}
+```
+
+An empty cart returns `items: []` and `total: 0`. Cart endpoints return
+`401` for missing/invalid authentication, `403` for non-customer roles,
+`400` for malformed IDs or quantities, `404` for missing/unavailable
+products or absent cart items, and `409` when requested quantity exceeds
+current stock.

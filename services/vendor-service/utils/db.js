@@ -59,6 +59,18 @@ const customerSchema = new mongoose.Schema({
     timestamps: true
 });
 
+const cartItemSchema = new mongoose.Schema({
+    productId: { type: mongoose.Schema.Types.ObjectId, ref: "Product", required: true },
+    quantity: { type: Number, required: true, min: 1, validate: Number.isInteger }
+}, { _id: false });
+
+const cartSchema = new mongoose.Schema({
+    userId: { type: Number, unique: true, required: true, index: true },
+    items: { type: [cartItemSchema], default: [] }
+}, {
+    timestamps: true
+});
+
 // Auto-hash password on save if modified and not already hashed
 userSchema.pre("save", async function () {
     if (this.isModified("password") && this.password) {
@@ -84,6 +96,7 @@ const User = mongoose.model("User", userSchema);
 const Vendor = mongoose.model("Vendor", vendorSchema);
 const Product = mongoose.model("Product", productSchema);
 const Customer = mongoose.model("Customer", customerSchema);
+const Cart = mongoose.model("Cart", cartSchema);
 
-export { User, Vendor, Product, Customer };
+export { User, Vendor, Product, Customer, Cart };
 export default Vendor;
