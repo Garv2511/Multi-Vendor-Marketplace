@@ -41,6 +41,16 @@ const vendorSchema = new mongoose.Schema({
     }
 });
 
+const productSchema = new mongoose.Schema({
+    title: { type: String, required: true, trim: true },
+    description: { type: String, required: true, trim: true },
+    price: { type: Number, required: true, min: 0 },
+    stockQuantity: { type: Number, required: true, min: 0, validate: Number.isInteger },
+    vendorId: { type: Number, required: true, index: true }
+}, {
+    timestamps: true
+});
+
 // Auto-hash password on save if modified and not already hashed
 userSchema.pre("save", async function () {
     if (this.isModified("password") && this.password) {
@@ -64,6 +74,7 @@ mongoose.connect(process.env.MONGO_URI || "mongodb://localhost:27017/vendor-serv
 
 const User = mongoose.model("User", userSchema);
 const Vendor = mongoose.model("Vendor", vendorSchema);
+const Product = mongoose.model("Product", productSchema);
 
-export { User, Vendor };
+export { User, Vendor, Product };
 export default Vendor;

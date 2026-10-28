@@ -57,10 +57,14 @@ sequenceDiagram
 | `/admin/pending` | `GET` | `admin` | Lists all pending vendor approval requests |
 | `/admin/approve` | `POST` | `admin` | Approves a vendor application |
 | `/admin/reject` | `POST` | `admin` | Rejects a vendor application |
+| `/products` | `POST` | Approved `vendor` | Creates a product for the authenticated vendor |
+| `/products/my` | `GET` | `vendor` | Lists products belonging to the authenticated vendor |
+| `/products/:productId` | `PATCH` | `vendor` | Updates an owned product |
+| `/products/:productId` | `DELETE` | `vendor` | Deletes an owned product |
 
 ---
 
-## Environment Variables (`vendor-service/.env`)
+## Environment Variables (`services/vendor-service/.env`)
 
 ```env
 PORT=3001
@@ -160,3 +164,46 @@ GET /admin/pending HTTP/1.1
 Host: localhost:3001
 Authorization: Bearer <admin-token>
 ```
+### 7. Create a Product (Approved Vendor Only)
+```http
+POST /products
+Host: localhost:3001
+Authorization: Bearer <vendor-jwt>
+Content-Type: application/json
+
+{
+  "title": "Wireless Headphones",
+  "description": "Noise-cancelling over-ear headphones",
+  "price": 79.99,
+  "stockQuantity": 25
+}
+```
+
+For creation, the vendor ID is taken from the authenticated JWT and matched
+against the vendor record. Client-provided vendor IDs and protected fields are
+not used.
+
+### 8. Update an Owned Product
+```http
+PATCH /products/653abc1234567890abcdef12
+Host: localhost:3001
+Authorization: Bearer <vendor-jwt>
+Content-Type: application/json
+
+{
+  "price": 69.99,
+  "stockQuantity": 20
+}
+```
+
+Only `title`, `description`, `price`, and `stockQuantity` can be updated.
+The product ID and authenticated vendor ID are enforced by the database query.
+
+### 9. Delete an Owned Product
+```http
+DELETE /products/653abc1234567890abcdef12
+Host: localhost:3001
+Authorization: Bearer <vendor-jwt>
+```
+
+The product ID and authenticated vendor ID are enforced by the deletion query.
