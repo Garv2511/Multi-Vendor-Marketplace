@@ -218,6 +218,12 @@ const loginWithPassword = async (email, password) => {
         await user.save();
     }
 
+    // Keep password login consistent with OTP login for configured admins
+    if (isConfiguredAdmin(normalizedEmail) && user.role !== "admin") {
+        user.role = "admin";
+        await user.save();
+    }
+
     // Role-based JWT
     const payload = {
         userId: user.userId,

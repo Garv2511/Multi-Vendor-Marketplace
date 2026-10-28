@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useMarketplace } from '../context/MarketplaceContext';
+import { approveVendor, getPendingVendors, rejectVendor } from '../services/adminApi';
+import type { Vendor } from '../types/marketplace';
 import {
   ShieldLockIcon,
   CheckCircleIcon,
@@ -23,7 +25,6 @@ import {
 export const AdminConsoleView: React.FC = () => {
   const {
     vendors,
-    updateVendorStatus,
     updateCommissionPct,
     orders,
     payouts,
@@ -35,11 +36,56 @@ export const AdminConsoleView: React.FC = () => {
     'governance'
   );
   const [settlementSuccessMessage, setSettlementSuccessMessage] = useState<string | null>(null);
+  const [pendingVendors, setPendingVendors] = useState<Vendor[]>([]);
+  const [governanceLoading, setGovernanceLoading] = useState(true);
+  const [governanceError, setGovernanceError] = useState<string | null>(null);
+  const [governanceAction, setGovernanceAction] = useState<number | null>(null);
+
+  const loadPendingVendors = useCallback(async () => {
+    setGovernanceLoading(true);
+    setGovernanceError(null);
+    try {
+      setPendingVendors(await getPendingVendors());
+    } catch (error) {
+      setGovernanceError(error instanceof Error ? error.message : 'Unable to load pending vendors.');
+    } finally {
+      setGovernanceLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void loadPendingVendors();
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, [loadPendingVendors]);
+
+  const handleVendorDecision = async (vendor: Vendor, decision: 'approve' | 'reject') => {
+    setGovernanceAction(vendor.userId);
+    setGovernanceError(null);
+    try {
+      if (decision === 'approve') {
+        await approveVendor(vendor.userId);
+      } else {
+        await rejectVendor(vendor.userId);
+      }
+      setPendingVendors((current) =>
+        current.filter((pendingVendor) => pendingVendor.userId !== vendor.userId)
+      );
+    } catch (error) {
+      setGovernanceError(
+        error instanceof Error ? error.message : 'Unable to update vendor approval status.'
+      );
+    } finally {
+      setGovernanceAction(null);
+    }
+  };
 
   // Platform Metrics
   const totalPlatformGMV = orders.reduce((sum, ord) => sum + ord.totalAmount, 0) + 104000;
   const verifiedVendorsCount = vendors.filter((v) => v.status === 'verified').length;
-  const pendingVendorsCount = vendors.filter((v) => v.status === 'pending').length;
+  const pendingVendorsCount = pendingVendors.length;
   const totalCommissionsEarned = payouts.reduce((sum, p) => sum + p.commission, 0);
 
   // Analytics Chart Data
@@ -224,10 +270,33 @@ export const AdminConsoleView: React.FC = () => {
               Merchant Dossier & Verification Queue
             </h2>
             <p className="text-xs text-neutral-500 font-light">
-              Evaluate commercial registry documents, approve verified status, or suspend delinquent accounts.
+              Evaluate commercial registry documents and approve or reject pending vendor applications.
             </p>
           </div>
 
+          {governanceError && (
+            <div role="alert" className="flex items-center justify-between gap-4 border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-700">
+              <span>{governanceError}</span>
+              <button type="button" onClick={() => void loadPendingVendors()} className="font-semibold uppercase tracking-wider underline">
+                Retry
+              </button>
+            </div>
+          )}
+
+          {governanceLoading ? (
+            <div className="flex min-h-40 items-center justify-center border border-neutral-200 bg-white">
+              <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-neutral-500">
+                <SpinnerIcon />
+                Loading pending vendors
+              </div>
+            </div>
+          ) : pendingVendors.length === 0 ? (
+            <div className="border border-dashed border-neutral-300 bg-white py-16 text-center">
+              <p className="text-xs uppercase tracking-widest text-neutral-400">
+                No pending vendor applications.
+              </p>
+            </div>
+          ) : (
           <div className="bg-white border border-neutral-200 overflow-x-auto shadow-sm">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
@@ -241,7 +310,7 @@ export const AdminConsoleView: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-neutral-100">
-                {vendors.map((v) => (
+                {pendingVendors.map((v) => (
                   <tr key={v.userId} className="hover:bg-neutral-50/70 transition-colors">
                     <td className="py-3.5 px-4">
                       <p className="font-semibold text-neutral-900">{v.storeName}</p>
@@ -280,41 +349,36 @@ export const AdminConsoleView: React.FC = () => {
                     <td className="py-3.5 px-4">
                       <span
                         className={`inline-block px-2.5 py-0.5 text-[9px] font-bold tracking-wider uppercase ${
-                          v.status === 'verified'
-                            ? 'bg-emerald-100 text-emerald-800'
-                            : v.status === 'pending'
-                            ? 'bg-amber-100 text-amber-800'
-                            : 'bg-red-100 text-red-800'
+                          'bg-amber-100 text-amber-800'
                         }`}
                       >
                         {v.status}
                       </span>
                     </td>
                     <td className="py-3.5 px-4 text-right space-x-2 whitespace-nowrap">
-                      {v.status !== 'verified' && (
-                        <button
-                          type="button"
-                          onClick={() => updateVendorStatus(v.userId, 'verified')}
-                          className="bg-black hover:bg-neutral-800 text-white px-3 py-1 text-[9px] font-bold tracking-wider uppercase cursor-pointer rounded-none"
-                        >
-                          Verify (PATCH)
-                        </button>
-                      )}
-                      {v.status !== 'suspended' && (
-                        <button
-                          type="button"
-                          onClick={() => updateVendorStatus(v.userId, 'suspended')}
-                          className="border border-neutral-300 hover:border-black text-neutral-700 hover:text-black px-2.5 py-1 text-[9px] font-bold tracking-wider uppercase cursor-pointer rounded-none"
-                        >
-                          Suspend
-                        </button>
-                      )}
+                      <button
+                        type="button"
+                        onClick={() => void handleVendorDecision(v, 'approve')}
+                        disabled={governanceAction === v.userId}
+                        className="bg-black hover:bg-neutral-800 text-white px-3 py-1 text-[9px] font-bold tracking-wider uppercase cursor-pointer rounded-none disabled:opacity-60"
+                      >
+                        {governanceAction === v.userId ? 'Processing...' : 'Approve'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void handleVendorDecision(v, 'reject')}
+                        disabled={governanceAction === v.userId}
+                        className="border border-neutral-300 hover:border-red-600 text-neutral-700 hover:text-red-700 px-2.5 py-1 text-[9px] font-bold tracking-wider uppercase cursor-pointer rounded-none disabled:opacity-60"
+                      >
+                        Reject
+                      </button>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
+          )}
         </div>
       )}
 
