@@ -7,6 +7,7 @@ import {
     setPassword
 } from "../services/auth.service.js";
 import { Vendor } from "../utils/db.js";
+import { serializeVendorPublic } from "../utils/vendor.serialization.js";
 
 export const requestOtpController = async (req, res) => {
     try {
@@ -123,13 +124,12 @@ export const getMeController = async (req, res) => {
         return res.status(200).json({
             message: "User profile fetched successfully",
             user: req.user,
-            vendor: vendor || null
+            vendor: serializeVendorPublic(vendor)
         });
     } catch (error) {
         console.error("Error in getMeController:", error);
         return res.status(500).json({
-            message: "Internal server error fetching profile",
-            error: error.message
+            message: "Internal server error fetching profile"
         });
     }
 };

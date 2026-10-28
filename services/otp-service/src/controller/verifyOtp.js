@@ -4,7 +4,7 @@ import client from "../config/redis.js";
 const verifyOtp = async (req, res) => {
     const data = req.body;
     const otp = data.json ? data.json.otp : data.otp;
-    const email = data.email;
+    const email = typeof data.email === "string" ? data.email.trim().toLowerCase() : "";
 
     try {
         // 1. Fetch data from Redis

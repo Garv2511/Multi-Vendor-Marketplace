@@ -5,7 +5,7 @@ import client from "../config/redis.js";
 
 const resendOtp = async (req, res) => {
     const data = req.body;
-    const email = data.email;
+    const email = typeof data.email === "string" ? data.email.trim().toLowerCase() : "";
 
     // CHECK IF EMAIL IS PROVIDED
     if (!email) {
@@ -58,19 +58,10 @@ const resendOtp = async (req, res) => {
         // AWAIT EMAIL TRANSMISSION SECURELY
         await sendMail(email, otp);
 
-        // PROCESS CONDITIONAL ENVIRONMENT LOGIC
-        if (process.env.ENVIRONMENT == "development") {
-            console.log(`Generated OTP: ${otp}`);
-            return res.send({
-                "success": true,
-                "otp": otp
-            });
-        } else {
-            return res.send({
-                "success": true,
-                "message": "OTP resent successfully"
-            });
-        }
+        return res.send({
+            "success": true,
+            "message": "OTP resent successfully"
+        });
 
     } catch (err) {
         console.error("Error in resend OTP flow:", err);

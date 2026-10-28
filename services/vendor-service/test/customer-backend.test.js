@@ -13,6 +13,7 @@ const {
     validateOrderId
 } = await import("../utils/order.validation.js");
 const { validateAddress } = await import("../utils/address.validation.js");
+const { serializeVendorPublic } = await import("../utils/vendor.serialization.js");
 
 const response = () => {
     const result = {};
@@ -117,6 +118,32 @@ test("saved address validation rejects protected fields and normalizes values", 
         postalCode: "SW1A 1AA",
         country: "United Kingdom",
         label: " Home "
+    });
+
+    test("vendor public serialization excludes private KYC and payout fields", () => {
+        const result = serializeVendorPublic({
+            userId: 7,
+            email: "vendor@example.com",
+            storeName: "Store",
+            slug: "store",
+            status: "approved",
+            uuid: "vendor-uuid",
+            kycDocs: ["private-document-path"],
+            payoutAccountId: "private-payout-id",
+            password: "private-password"
+        });
+        assert.deepEqual(result, {
+            userId: 7,
+            email: "vendor@example.com",
+            storeName: "Store",
+            slug: "store",
+            status: "approved",
+            uuid: "vendor-uuid",
+            createdAt: undefined,
+            updatedAt: undefined
+        });
+        assert.equal("kycDocs" in result, false);
+        assert.equal("payoutAccountId" in result, false);
     });
     assert.equal(address.recipientName, "Buyer");
     assert.equal(address.label, "Home");

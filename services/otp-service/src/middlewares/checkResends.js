@@ -2,7 +2,7 @@ import client from "../config/redis.js";
 
 const checkResends = async (req, res, next) => {
     const data = req.body;
-    const email = data.email;
+    const email = typeof data.email === "string" ? data.email.trim().toLowerCase() : "";
 
     if (!email) {
         return res.status(400).json({ message: "Email is required." });
