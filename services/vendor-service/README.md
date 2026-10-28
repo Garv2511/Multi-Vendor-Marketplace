@@ -45,7 +45,9 @@ sequenceDiagram
 | Endpoint | Method | Allowed Roles | Description |
 | :--- | :--- | :--- | :--- |
 | `/auth/request-otp` | `POST` | Public | Initiates OTP delivery to user's email via OTP microservice |
-| `/auth/verify-otp` | `POST` | Public | Validates OTP with OTP service and returns a role-based JWT |
+| `/auth/verify-otp` | `POST` | Public | Validates an existing vendor/admin OTP flow and returns a role-based JWT |
+| `/auth/customer/request-otp` | `POST` | Public | Requests an OTP for customer registration/login |
+| `/auth/customer/verify-otp` | `POST` | Public | Creates or authenticates a customer account and returns a customer JWT |
 | `/auth/resend-otp` | `POST` | Public | Resends OTP adhering to cooldown rules in OTP microservice |
 | `/auth/login` | `POST` | Public | Authenticates using email and hashed password, returns role-based JWT |
 | `/auth/set-password` | `POST` | `vendor`, `admin` | Sets or updates account password after bcrypt hashing |
@@ -61,6 +63,9 @@ sequenceDiagram
 | `/products/my` | `GET` | `vendor` | Lists products belonging to the authenticated vendor |
 | `/products/:productId` | `PATCH` | `vendor` | Updates an owned product |
 | `/products/:productId` | `DELETE` | `vendor` | Deletes an owned product |
+| `/customers/me` | `GET` | `customer` | Returns the authenticated customer profile |
+| `/catalog/products` | `GET` | Public | Lists products from approved vendors |
+| `/catalog/products/:productId` | `GET` | Public | Returns one product from an approved vendor |
 
 ---
 
@@ -207,3 +212,73 @@ Authorization: Bearer <vendor-jwt>
 ```
 
 The product ID and authenticated vendor ID are enforced by the deletion query.
+
+### 10. Customer Registration and Login
+
+Customer authentication uses the existing OTP microservice and the same JWT
+secret and payload convention as vendor/admin authentication. It has a
+dedicated path so the existing `/auth/verify-otp` flow continues to create
+vendor accounts for non-admin emails.
+
+```http
+POST /auth/customer/request-otp
+Content-Type: application/json
+
+{ "email": "buyer@example.com" }
+```
+
+```http
+POST /auth/customer/verify-otp
+Content-Type: application/json
+
+{
+  "email": "buyer@example.com",
+  "otp": "123456",
+  "displayName": "A Buyer"
+}
+```
+
+The response contains a JWT with `role: "customer"` and a persisted customer
+profile. If the email already belongs to a vendor or administrator, the
+customer endpoint returns `409` instead of changing that account's role.
+Customer profiles contain only `userId`, `email`, and optional `displayName`
+plus timestamps. The profile is stored separately from the vendor document.
+
+### 11. Public Catalog
+
+The catalog is read-only and returns only products whose vendor currently has
+`status: "approved"`. Vendor email, KYC documents, payout identifiers, and
+other private vendor fields are never returned.
+
+```http
+GET /catalog/products?page=1&pageSize=20&search=headphones
+```
+
+```json
+{
+  "message": "Catalog products fetched successfully",
+  "data": {
+    "items": [
+      {
+        "productId": "653abc1234567890abcdef12",
+        "title": "Wireless Headphones",
+        "description": "Noise-cancelling headphones",
+        "price": 79.99,
+        "stockQuantity": 25,
+        "createdAt": "2026-01-01T00:00:00.000Z",
+        "updatedAt": "2026-01-01T00:00:00.000Z",
+        "vendorId": 1001,
+        "storeName": "Approved Store"
+      }
+    ],
+    "page": 1,
+    "pageSize": 20,
+    "totalItems": 1,
+    "totalPages": 1
+  }
+}
+```
+
+`pageSize` is limited to 50. Product detail requests use the same public
+shape and return `404` when the product is missing or its vendor is not
+approved.

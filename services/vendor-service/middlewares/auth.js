@@ -71,11 +71,13 @@ export const authorizeVendorOwnerOrAdmin = (req, res, next) => {
 
 export const requireAdmin = [authenticate, authorizeRoles("admin")];
 export const requireVendor = [authenticate, authorizeRoles("vendor", "admin")];
+export const requireCustomer = [authenticate, authorizeRoles("customer")];
 
 export default {
     authenticate,
     authorizeRoles,
     authorizeVendorOwnerOrAdmin,
     requireAdmin,
-    requireVendor
+    requireVendor,
+    requireCustomer
 };

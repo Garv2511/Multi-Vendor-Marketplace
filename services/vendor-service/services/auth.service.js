@@ -1,5 +1,5 @@
 import jwt from "jsonwebtoken";
-import { User, Vendor } from "../utils/db.js";
+import { User, Vendor, Customer } from "../utils/db.js";
 import { hashPassword, comparePassword } from "../utils/password.js";
 
 const OTP_SERVICE_URL = process.env.OTP_SERVICE_URL || "http://localhost:3000";
@@ -84,17 +84,7 @@ const resendOtp = async (email) => {
     }
 };
 
-/**
- * Verifies the OTP with the OTP microservice and logs in / registers the user with role-based JWT
- */
-const verifyOtpAndLogin = async (email, otp) => {
-    if (!email || !otp) {
-        const error = new Error("Email and OTP are required");
-        error.statusCode = 400;
-        throw error;
-    }
-
-    // 1. Verify OTP with the OTP service
+const verifyOtpWithService = async (email, otp) => {
     try {
         const response = await fetch(`${OTP_SERVICE_URL}/otp/verify`, {
             method: "POST",
@@ -114,6 +104,19 @@ const verifyOtpAndLogin = async (email, otp) => {
         error.statusCode = 503;
         throw error;
     }
+};
+
+/**
+ * Verifies the OTP with the OTP microservice and logs in / registers the user with role-based JWT
+ */
+const verifyOtpAndLogin = async (email, otp) => {
+    if (!email || !otp) {
+        const error = new Error("Email and OTP are required");
+        error.statusCode = 400;
+        throw error;
+    }
+
+    await verifyOtpWithService(email, otp);
 
     // 2. Resolve Role & User Profile in Vendor Service
     const normalizedEmail = email.trim().toLowerCase();
@@ -164,6 +167,67 @@ const verifyOtpAndLogin = async (email, otp) => {
             status: vendorProfile.status,
             uuid: vendorProfile.uuid
         } : null
+    };
+};
+
+const verifyCustomerOtp = async (email, otp, displayName) => {
+    if (!email || !otp) {
+        const error = new Error("Email and OTP are required");
+        error.statusCode = 400;
+        throw error;
+    }
+
+    await verifyOtpWithService(email, otp);
+
+    const normalizedEmail = email.trim().toLowerCase();
+    let user = await User.findOne({ email: normalizedEmail });
+    const vendorProfile = await Vendor.findOne({ email: normalizedEmail }).select("userId");
+
+    if ((user && user.role !== "customer") || vendorProfile || isConfiguredAdmin(normalizedEmail)) {
+        const error = new Error("This email is already registered for a non-customer account");
+        error.statusCode = 409;
+        throw error;
+    }
+
+    if (!user) {
+        const latestUser = await User.findOne().sort({ userId: -1 });
+        const nextUserId = (latestUser && latestUser.userId) ? latestUser.userId + 1 : 1001;
+
+        user = new User({
+            userId: nextUserId,
+            email: normalizedEmail,
+            role: "customer"
+        });
+        await user.save();
+    }
+
+    let customer = await Customer.findOne({ userId: user.userId });
+    if (!customer) {
+        customer = await Customer.create({
+            userId: user.userId,
+            email: normalizedEmail,
+            ...(displayName?.trim() ? { displayName: displayName.trim() } : {})
+        });
+    } else if (displayName?.trim()) {
+        customer.displayName = displayName.trim();
+        await customer.save();
+    }
+
+    const token = jwt.sign({
+        userId: user.userId,
+        email: user.email,
+        role: "customer"
+    }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+
+    return {
+        message: "Customer authentication successful",
+        token,
+        user: {
+            userId: user.userId,
+            email: user.email,
+            role: "customer"
+        },
+        customer: customer.toJSON()
     };
 };
 
@@ -292,6 +356,7 @@ export {
     requestOtp,
     resendOtp,
     verifyOtpAndLogin,
+    verifyCustomerOtp,
     loginWithPassword,
     setPassword
 };

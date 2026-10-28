@@ -15,13 +15,24 @@ browser `localStorage`.
 It owns:
 
 - users and roles
+- customer profiles linked to user identities
 - vendor registration
 - vendor profiles
 - KYC upload metadata
 - vendor approval and rejection
 - JWT authentication
+- public product catalogue reads filtered by vendor approval
 
 It calls the OTP service over HTTP for OTP request, resend, and verification.
+
+Customer authentication uses the same vendor-service identity collection,
+JWT secret, and OTP service. A dedicated customer OTP route assigns the
+`customer` role only on the server and creates a separate customer profile
+linked by `userId`; existing vendor and admin accounts cannot be converted.
+The vendor service also exposes public `GET /catalog/products` and
+`GET /catalog/products/:productId` reads. These endpoints join products to
+vendors by `vendorId` and return only products whose vendor status is
+`approved`.
 
 ### OTP service
 
@@ -54,7 +65,6 @@ service responsibilities.
 
 ## Not implemented as backend services yet
 
-- catalogue/product API
 - persistent customer cart
 - order and vendor sub-order API
 - payment provider integration

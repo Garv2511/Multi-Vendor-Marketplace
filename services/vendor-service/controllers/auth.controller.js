@@ -2,6 +2,7 @@ import {
     requestOtp,
     resendOtp,
     verifyOtpAndLogin,
+    verifyCustomerOtp,
     loginWithPassword,
     setPassword
 } from "../services/auth.service.js";
@@ -54,6 +55,28 @@ export const verifyOtpController = async (req, res) => {
         console.error("Error in verifyOtpController:", error);
         return res.status(error.statusCode || 500).json({
             message: error.message || "Failed to verify OTP"
+        });
+    }
+};
+
+export const requestCustomerOtpController = requestOtpController;
+
+export const verifyCustomerOtpController = async (req, res) => {
+    try {
+        const { email, otp, displayName } = req.body || {};
+        if (!email || !otp) {
+            return res.status(400).json({ message: "Both email and otp are required" });
+        }
+        if (displayName !== undefined && (typeof displayName !== "string" || displayName.trim().length > 120)) {
+            return res.status(400).json({ message: "displayName must be a string with at most 120 characters" });
+        }
+
+        const result = await verifyCustomerOtp(email, otp, displayName);
+        return res.status(200).json(result);
+    } catch (error) {
+        console.error("Error in verifyCustomerOtpController:", error);
+        return res.status(error.statusCode || 500).json({
+            message: error.message || "Failed to verify customer OTP"
         });
     }
 };
@@ -115,6 +138,8 @@ export default {
     requestOtpController,
     resendOtpController,
     verifyOtpController,
+    requestCustomerOtpController,
+    verifyCustomerOtpController,
     loginWithPasswordController,
     setPasswordController,
     getMeController

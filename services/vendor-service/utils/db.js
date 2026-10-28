@@ -9,7 +9,7 @@ const userSchema = new mongoose.Schema({
     userId: { type: Number, unique: true, required: true },
     email: { type: String, unique: true, required: true, lowercase: true, trim: true },
     password: { type: String, select: false },
-    role: { type: String, enum: ["admin", "vendor"], default: "vendor" }
+    role: { type: String, enum: ["admin", "vendor", "customer"], default: "vendor" }
 }, {
     timestamps: true,
     toJSON: {
@@ -51,6 +51,14 @@ const productSchema = new mongoose.Schema({
     timestamps: true
 });
 
+const customerSchema = new mongoose.Schema({
+    userId: { type: Number, unique: true, required: true, index: true },
+    email: { type: String, unique: true, required: true, lowercase: true, trim: true },
+    displayName: { type: String, trim: true, maxlength: 120 }
+}, {
+    timestamps: true
+});
+
 // Auto-hash password on save if modified and not already hashed
 userSchema.pre("save", async function () {
     if (this.isModified("password") && this.password) {
@@ -75,6 +83,7 @@ mongoose.connect(process.env.MONGO_URI || "mongodb://localhost:27017/vendor-serv
 const User = mongoose.model("User", userSchema);
 const Vendor = mongoose.model("Vendor", vendorSchema);
 const Product = mongoose.model("Product", productSchema);
+const Customer = mongoose.model("Customer", customerSchema);
 
-export { User, Vendor, Product };
+export { User, Vendor, Product, Customer };
 export default Vendor;
