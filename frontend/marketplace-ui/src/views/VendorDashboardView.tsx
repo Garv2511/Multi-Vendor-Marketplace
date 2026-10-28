@@ -13,6 +13,7 @@ import {
   XIcon,
 } from '../components/ui/Icons';
 import type { Product, FulfillmentStatus, ProductStatus } from '../types/marketplace';
+import VendorProductManagement from '../components/VendorProductManagement';
 import {
   ResponsiveContainer,
   BarChart,
@@ -61,6 +62,7 @@ export const VendorDashboardView: React.FC<{ onNavigateToProfile: () => void }> 
   const [formStatus, setFormStatus] = useState<ProductStatus>('active');
 
   const vendor = currentVendor || vendors[0];
+  const showLegacyProducts = false;
 
   // Vendor's products
   const vendorProducts = useMemo(
@@ -456,7 +458,9 @@ export const VendorDashboardView: React.FC<{ onNavigateToProfile: () => void }> 
 
       {/* Tab 2: Products & Inventory Management */}
       {activeTab === 'products' && (
-        <div className="space-y-6">
+        <>
+          <VendorProductManagement />
+        {showLegacyProducts && (<div className="space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <h2 className="text-base font-semibold uppercase tracking-wide text-neutral-900">
@@ -563,9 +567,9 @@ export const VendorDashboardView: React.FC<{ onNavigateToProfile: () => void }> 
                   ))}
                 </tbody>
               </table>
-            </div>
-          )}
-        </div>
+            </div>)}
+        </div>)}
+        </>
       )}
 
       {/* Tab 3: Order Fulfillment */}
@@ -893,4 +897,3 @@ export const VendorDashboardView: React.FC<{ onNavigateToProfile: () => void }> 
 };
 
 export default VendorDashboardView;
-
