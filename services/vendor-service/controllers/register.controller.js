@@ -12,6 +12,17 @@ const registerController = async (req, res) => {
             payoutAccountId,
             password
         } = req.body || {};
+        const protectedVendorFields = ["status", "commissionPct", "payoutAccountId"];
+        if (req.user?.role !== "admin") {
+            const suppliedProtectedFields = protectedVendorFields.filter((field) => (
+                Object.prototype.hasOwnProperty.call(req.body || {}, field)
+            ));
+            if (suppliedProtectedFields.length > 0) {
+                return res.status(400).json({
+                    message: `Only administrators may set: ${suppliedProtectedFields.join(", ")}`
+                });
+            }
+        }
 
         // Use authenticated user's userId if not explicitly provided
         const authenticatedUserId = req.user?.userId;
@@ -37,9 +48,9 @@ const registerController = async (req, res) => {
             storeName,
             generatedSlug,
             kycDocs || [],
-            status || "pending",
-            commissionPct ?? 0,
-            payoutAccountId || "",
+            req.user?.role === "admin" ? (status || "pending") : "pending",
+            req.user?.role === "admin" ? (commissionPct ?? 0) : 0,
+            req.user?.role === "admin" ? (payoutAccountId || "") : "",
             req.user?.email,
             password
         );
@@ -50,14 +61,12 @@ const registerController = async (req, res) => {
 
         if (error.code === 11000) {
             return res.status(409).json({
-                message: "Vendor already exists with this userId or slug",
-                error: error.message
+                message: "Vendor already exists with this userId or slug"
             });
         }
 
         return res.status(500).json({
-            message: "Internal server error while registering vendor",
-            error: error.message
+            message: "Internal server error while registering vendor"
         });
     }
 };

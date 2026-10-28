@@ -11,8 +11,10 @@ import resendOtp from "../src/controller/resendOtp.js";
 dotenv.config();
 const app = express();
 
+const corsOrigin = process.env.CORS_ORIGIN || (process.env.NODE_ENV === "production" ? false : "*");
+
 app.use(cors({
-  origin: "*",
+  origin: corsOrigin,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"]
 }));

@@ -5,9 +5,10 @@
 ### Frontend
 
 `frontend/marketplace-ui` is a React, TypeScript, and Vite application. Its
-authentication and vendor profile screens call the vendor service. Catalogue,
-cart, checkout, order, and payout screens currently use seeded data and
-browser `localStorage`.
+authentication and vendor profile screens call the vendor service. The
+customer cart UI still uses seeded data and browser `localStorage`; the
+backend now exposes a persistent customer cart API for future integration.
+Catalogue, checkout, order, and payout screens currently use seeded data.
 
 ### Vendor service
 
@@ -15,13 +16,24 @@ browser `localStorage`.
 It owns:
 
 - users and roles
+- customer profiles linked to user identities
 - vendor registration
 - vendor profiles
 - KYC upload metadata
 - vendor approval and rejection
 - JWT authentication
+- public product catalogue reads filtered by vendor approval
 
 It calls the OTP service over HTTP for OTP request, resend, and verification.
+
+Customer authentication uses the same vendor-service identity collection,
+JWT secret, and OTP service. A dedicated customer OTP route assigns the
+`customer` role only on the server and creates a separate customer profile
+linked by `userId`; existing vendor and admin accounts cannot be converted.
+The vendor service also exposes public `GET /catalog/products` and
+`GET /catalog/products/:productId` reads. These endpoints join products to
+vendors by `vendorId` and return only products whose vendor status is
+`approved`.
 
 ### OTP service
 
@@ -52,11 +64,13 @@ frontend
 The directory reorganization does not change these ports, route paths, or
 service responsibilities.
 
+The vendor service also owns customer profiles, saved delivery addresses,
+persistent carts, and customer order checkout preparation. Saved addresses
+are customer-owned records; orders retain immutable delivery-address
+snapshots.
+
 ## Not implemented as backend services yet
 
-- catalogue/product API
-- persistent customer cart
-- order and vendor sub-order API
 - payment provider integration
 - refund processing
 - payout settlement

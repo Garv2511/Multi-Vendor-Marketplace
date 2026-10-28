@@ -3,6 +3,8 @@ import {
     requestOtpController,
     resendOtpController,
     verifyOtpController,
+    requestCustomerOtpController,
+    verifyCustomerOtpController,
     loginWithPasswordController,
     setPasswordController,
     getMeController
@@ -14,6 +16,8 @@ const router = Router();
 // Public auth endpoints
 router.post("/request-otp", requestOtpController);
 router.post("/verify-otp", verifyOtpController);
+router.post("/customer/request-otp", requestCustomerOtpController);
+router.post("/customer/verify-otp", verifyCustomerOtpController);
 router.post("/resend-otp", resendOtpController);
 router.post("/login", loginWithPasswordController);
 

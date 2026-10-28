@@ -1,4 +1,5 @@
 import { getVendor, updateVendorProfile } from "../services/vendor-data.service.js";
+import { serializeVendorPublic } from "../utils/vendor.serialization.js";
 
 const vendorDataController = async (req, res) => {
     try {
@@ -28,13 +29,12 @@ const vendorDataController = async (req, res) => {
 
         return res.status(200).json({
             message: "Vendor data fetched successfully",
-            data: vendorData
+            data: serializeVendorPublic(vendorData)
         });
     } catch (error) {
         console.error("Error in vendorDataController:", error);
         return res.status(500).json({
-            message: "Internal server error while fetching vendor data",
-            error: error.message
+            message: "Internal server error while fetching vendor data"
         });
     }
 };
@@ -67,8 +67,7 @@ const updateVendorController = async (req, res) => {
     } catch (error) {
         console.error("Error in updateVendorController:", error);
         return res.status(error.statusCode || 500).json({
-            message: error.message || "Internal server error updating vendor profile",
-            error: error.message
+            message: error.message || "Internal server error updating vendor profile"
         });
     }
 };
@@ -105,8 +104,7 @@ const uploadKycController = async (req, res) => {
     } catch (error) {
         console.error("Error in uploadKycController:", error);
         return res.status(error.statusCode || 500).json({
-            message: error.message || "Failed to upload KYC document",
-            error: error.message
+            message: error.message || "Failed to upload KYC document"
         });
     }
 };

@@ -8,18 +8,16 @@ import routes from "../routes/index.js";
 
 const app = express();
 
-// Enable CORS for all origins and headers
+const corsOrigin = process.env.CORS_ORIGIN || (process.env.NODE_ENV === "production" ? false : "*");
+
 app.use(cors({
-    origin: "*",
+    origin: corsOrigin,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"]
 }));
 
 app.use(express.json());
-app.use("/uploads", express.static("uploads"));
-
 app.get("/health", (req, res) => {
-    console.log("/health called " + res.statusCode);
     res.json({ message: "ok", service: "vendor-service" });
 });
 

@@ -45,7 +45,9 @@ sequenceDiagram
 | Endpoint | Method | Allowed Roles | Description |
 | :--- | :--- | :--- | :--- |
 | `/auth/request-otp` | `POST` | Public | Initiates OTP delivery to user's email via OTP microservice |
-| `/auth/verify-otp` | `POST` | Public | Validates OTP with OTP service and returns a role-based JWT |
+| `/auth/verify-otp` | `POST` | Public | Validates an existing vendor/admin OTP flow and returns a role-based JWT |
+| `/auth/customer/request-otp` | `POST` | Public | Requests an OTP for customer registration/login |
+| `/auth/customer/verify-otp` | `POST` | Public | Creates or authenticates a customer account and returns a customer JWT |
 | `/auth/resend-otp` | `POST` | Public | Resends OTP adhering to cooldown rules in OTP microservice |
 | `/auth/login` | `POST` | Public | Authenticates using email and hashed password, returns role-based JWT |
 | `/auth/set-password` | `POST` | `vendor`, `admin` | Sets or updates account password after bcrypt hashing |
@@ -61,6 +63,19 @@ sequenceDiagram
 | `/products/my` | `GET` | `vendor` | Lists products belonging to the authenticated vendor |
 | `/products/:productId` | `PATCH` | `vendor` | Updates an owned product |
 | `/products/:productId` | `DELETE` | `vendor` | Deletes an owned product |
+| `/customers/me` | `GET` | `customer` | Returns the authenticated customer profile |
+| `/customers/me` | `PATCH` | `customer` | Updates the authenticated customer's display name |
+| `/customers/me/addresses` | `GET`, `POST` | `customer` | Lists or creates saved addresses |
+| `/customers/me/addresses/:addressId` | `GET`, `PATCH`, `DELETE` | `customer` | Reads, updates, or deletes an owned saved address |
+| `/customers/me/addresses/:addressId/default` | `PATCH` | `customer` | Sets an owned address as default |
+| `/catalog/products` | `GET` | Public | Lists products from approved vendors |
+| `/catalog/products/:productId` | `GET` | Public | Returns one product from an approved vendor |
+| `/cart` | `GET`, `DELETE` | `customer` | Fetches or clears the authenticated customer's cart |
+| `/cart/items` | `POST` | `customer` | Adds to a customer's cart, increasing existing quantity |
+| `/cart/items/:productId` | `PATCH`, `DELETE` | `customer` | Updates or removes one cart item |
+| `/orders` | `POST`, `GET` | `customer` | Creates an order from the cart or lists customer orders |
+| `/orders/:orderId` | `GET` | `customer` | Returns one order owned by the customer |
+| `/orders/:orderId/cancel` | `POST` | `customer` | Cancels an eligible pending unpaid order |
 
 ---
 
@@ -70,13 +85,14 @@ sequenceDiagram
 PORT=3001
 MONGO_URI=mongodb://localhost:27017/vendor-service
 OTP_SERVICE_URL=http://localhost:3000
-JWT_SECRET=super_secret_vendor_service_jwt_key_2026
+JWT_SECRET=replace-with-a-random-secret-at-least-32-characters
 JWT_EXPIRES_IN=7d
 ADMIN_EMAILS=admin@market.com,admin@example.com
 ```
 
 - **`OTP_SERVICE_URL`**: Base URL of the running OTP microservice (default: `http://localhost:3000`).
 - **`ADMIN_EMAILS`**: Comma-separated list of emails that are automatically granted the `admin` role upon OTP verification. All other emails default to `vendor`.
+- **`JWT_SECRET`**: Required secret of at least 32 characters. The service refuses to start when it is missing or too weak.
 - **`PORT`**: Set to `3001` so it does not collide with the OTP microservice on port `3000`.
 
 ---
@@ -207,3 +223,338 @@ Authorization: Bearer <vendor-jwt>
 ```
 
 The product ID and authenticated vendor ID are enforced by the deletion query.
+
+### 10. Customer Registration and Login
+
+Customer authentication uses the existing OTP microservice and the same JWT
+secret and payload convention as vendor/admin authentication. It has a
+dedicated path so the existing `/auth/verify-otp` flow continues to create
+vendor accounts for non-admin emails.
+
+```http
+POST /auth/customer/request-otp
+Content-Type: application/json
+
+{ "email": "buyer@example.com" }
+```
+
+```http
+POST /auth/customer/verify-otp
+Content-Type: application/json
+
+{
+  "email": "buyer@example.com",
+  "otp": "123456",
+  "displayName": "A Buyer"
+}
+```
+
+The response contains a JWT with `role: "customer"` and a persisted customer
+profile. If the email already belongs to a vendor or administrator, the
+customer endpoint returns `409` instead of changing that account's role.
+Customer profiles contain only `userId`, `email`, and optional `displayName`
+plus timestamps. The profile is stored separately from the vendor document.
+
+### 11. Public Catalog
+
+The catalog is read-only and returns only products whose vendor currently has
+`status: "approved"`. Vendor email, KYC documents, payout identifiers, and
+other private vendor fields are never returned.
+
+```http
+GET /catalog/products?page=1&pageSize=20&search=headphones
+```
+
+```json
+{
+  "message": "Catalog products fetched successfully",
+  "data": {
+    "items": [
+      {
+        "productId": "653abc1234567890abcdef12",
+        "title": "Wireless Headphones",
+        "description": "Noise-cancelling headphones",
+        "price": 79.99,
+        "stockQuantity": 25,
+        "createdAt": "2026-01-01T00:00:00.000Z",
+        "updatedAt": "2026-01-01T00:00:00.000Z",
+        "vendorId": 1001,
+        "storeName": "Approved Store"
+      }
+    ],
+    "page": 1,
+    "pageSize": 20,
+    "totalItems": 1,
+    "totalPages": 1
+  }
+}
+```
+
+`pageSize` is limited to 50. Product detail requests use the same public
+shape and return `404` when the product is missing or its vendor is not
+approved.
+
+### 12. Persistent Customer Cart
+
+The cart is stored in MongoDB using one `Cart` document per customer
+`userId`. Each item stores only a `productId` reference and a positive
+`quantity`. Prices, stock, and store names are resolved from the current
+`Product` and approved `Vendor` documents; clients cannot provide those
+values.
+
+Adding an existing item increases its quantity. The resulting quantity must
+not exceed current stock. Cart reads revalidate product availability and
+prices. If a product was deleted or its vendor is no longer approved, the
+item remains in the cart with `available: false`, `currentPrice: null`,
+`currentStock: 0`, and contributes zero to `total` until removed or the
+product becomes available again.
+
+#### Get the cart
+
+```http
+GET /cart
+Authorization: Bearer CUSTOMER_JWT
+```
+
+#### Add an item
+
+```http
+POST /cart/items
+Authorization: Bearer CUSTOMER_JWT
+Content-Type: application/json
+
+{
+  "productId": "653abc1234567890abcdef12",
+  "quantity": 2
+}
+```
+
+#### Update an item
+
+```http
+PATCH /cart/items/653abc1234567890abcdef12
+Authorization: Bearer CUSTOMER_JWT
+Content-Type: application/json
+
+{ "quantity": 3 }
+```
+
+#### Remove an item
+
+```http
+DELETE /cart/items/653abc1234567890abcdef12
+Authorization: Bearer CUSTOMER_JWT
+```
+
+#### Clear the cart
+
+```http
+DELETE /cart
+Authorization: Bearer CUSTOMER_JWT
+```
+
+Cart mutation responses use the following shape:
+
+```json
+{
+  "message": "Cart item added successfully",
+  "data": {
+    "cartId": "cart-mongo-id",
+    "items": [
+      {
+        "productId": "653abc1234567890abcdef12",
+        "title": "Wireless Headphones",
+        "description": "Noise-cancelling headphones",
+        "currentPrice": 79.99,
+        "quantity": 2,
+        "currentStock": 25,
+        "storeName": "Approved Store",
+        "available": true,
+        "itemTotal": 159.98
+      }
+    ],
+    "total": 159.98,
+    "currency": "USD",
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  }
+}
+```
+
+An empty cart returns `items: []` and `total: 0`. Cart endpoints return
+`401` for missing/invalid authentication, `403` for non-customer roles,
+`400` for malformed IDs or quantities, `404` for missing/unavailable
+products or absent cart items, and `409` when requested quantity exceeds
+current stock.
+
+### 13. Customer Orders and Checkout
+
+Orders use the same `USD` currency contract as the catalogue and cart. Prices
+are converted to integer cents before calculation and storage to avoid
+floating-point accumulation errors. Responses expose dollar values, while
+the database stores `unitPriceMinor`, `lineTotalMinor`, `subtotalMinor`, and
+`totalMinor`.
+
+#### Create an order
+
+```http
+POST /orders
+Authorization: Bearer CUSTOMER_JWT
+Content-Type: application/json
+
+{
+  "deliveryAddress": {
+    "recipientName": "A Buyer",
+    "phone": "+1 555 0100",
+    "addressLine1": "10 Market Street",
+    "addressLine2": "Apartment 4",
+    "city": "London",
+    "state": "London",
+    "postalCode": "SW1A 1AA",
+    "country": "United Kingdom"
+  }
+}
+```
+
+The server loads the authenticated customer's cart, revalidates every product
+and approved vendor, atomically decrements stock, creates the order, and
+clears the cart. The order starts with `status: "pending"` and
+`paymentStatus: "pending"`. It never accepts client-supplied prices, totals,
+customer IDs, vendor IDs, or payment status.
+
+The response contains immutable item snapshots:
+
+```json
+{
+  "message": "Order created successfully",
+  "data": {
+    "orderId": "ORD-00000000-0000-0000-0000-000000000000",
+    "items": [
+      {
+        "productId": "653abc1234567890abcdef12",
+        "vendorId": 1001,
+        "title": "Wireless Headphones",
+        "storeName": "Approved Store",
+        "unitPrice": 79.99,
+        "quantity": 2,
+        "lineTotal": 159.98
+      }
+    ],
+    "vendorGroups": [
+      {
+        "vendorId": 1001,
+        "storeName": "Approved Store",
+        "itemProductIds": ["653abc1234567890abcdef12"],
+        "subtotal": 159.98
+      }
+    ],
+    "subtotal": 159.98,
+    "total": 159.98,
+    "currency": "USD",
+    "status": "pending",
+    "paymentStatus": "pending",
+    "deliveryAddress": {
+      "recipientName": "A Buyer",
+      "phone": "+1 555 0100",
+      "addressLine1": "10 Market Street",
+      "city": "London",
+      "state": "London",
+      "postalCode": "SW1A 1AA",
+      "country": "United Kingdom"
+    }
+  }
+}
+```
+
+`vendorGroups` provides the future vendor-fulfillment boundary while keeping
+one customer checkout/order. Vendor identity and store names are resolved
+from approved vendor records, never from the request.
+
+Checkout requires MongoDB transaction support (replica set or sharded
+deployment). If transactions are unavailable, the endpoint returns `503`
+without creating an order, decrementing stock, or clearing the cart. Stock
+decrements also use conditional updates requiring sufficient stock,
+protecting against overselling during concurrent transactions.
+
+#### List and retrieve orders
+
+```http
+GET /orders?page=1&pageSize=20
+Authorization: Bearer CUSTOMER_JWT
+```
+
+```http
+GET /orders/ORD-00000000-0000-0000-0000-000000000000
+Authorization: Bearer CUSTOMER_JWT
+```
+
+Both operations are scoped by the authenticated customer's `userId`.
+
+#### Cancellation
+
+```http
+POST /orders/ORD-00000000-0000-0000-0000-000000000000/cancel
+Authorization: Bearer CUSTOMER_JWT
+```
+
+Only an order with `status: "pending"` and `paymentStatus: "pending"` can be
+cancelled. Cancellation atomically changes the order to `cancelled` and
+restores each item's stock once. Paid, already cancelled, or otherwise
+ambiguous orders return `409`; no refund is simulated. Cancellation also
+requires MongoDB transaction support and returns `503` without changing state
+when transactions are unavailable.
+
+### 14. Customer Profile and Saved Addresses
+
+`GET /customers/me` returns the profile for the authenticated customer.
+`PATCH /customers/me` accepts only `displayName`; email, user ID, role,
+password, OTP state, and verification state are protected.
+
+```http
+PATCH /customers/me
+Authorization: Bearer CUSTOMER_JWT
+Content-Type: application/json
+
+{ "displayName": "A Buyer" }
+```
+
+Saved addresses are stored separately and owned by `userId`. Supported fields
+are `recipientName`, `phone`, `addressLine1`, optional `addressLine2`,
+`city`, `state`, `postalCode`, `country`, optional `label`, and optional
+`isDefault`.
+
+```http
+POST /customers/me/addresses
+Authorization: Bearer CUSTOMER_JWT
+Content-Type: application/json
+
+{
+  "recipientName": "A Buyer",
+  "phone": "+1 555 0100",
+  "addressLine1": "10 Market Street",
+  "city": "London",
+  "state": "London",
+  "postalCode": "SW1A 1AA",
+  "country": "United Kingdom",
+  "label": "Home",
+  "isDefault": true
+}
+```
+
+The first saved address becomes default automatically. Setting another
+address as default unsets the previous default. Address lists return the
+default address first. Deleting the default selects the newest remaining
+address as the replacement; deleting the only address leaves no default.
+The database has a partial unique index so each customer can have at most one
+default address. Concurrent default changes may return `409` and should be
+retried.
+
+Address IDs and customer ownership are always resolved server-side. Invalid
+IDs return `400`; missing or inaccessible addresses return `404`; unknown or
+protected fields return `400`.
+
+Order delivery addresses remain immutable snapshots. Existing order history
+is not changed when a saved address is edited or deleted. Checkout continues
+to accept the existing validated `deliveryAddress` object. It also accepts
+`savedAddressId` instead; that ID is resolved only against the authenticated
+customer's addresses and copied into the order snapshot. A request cannot
+send both fields.

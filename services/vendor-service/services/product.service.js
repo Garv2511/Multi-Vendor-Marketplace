@@ -27,6 +27,20 @@ const createProduct = async (userId, productData) => {
     return product;
 };
 
+const requireApprovedVendor = async (userId) => {
+    const vendor = await Vendor.findOne({ userId: Number(userId) }).select("status");
+    if (!vendor) {
+        const error = new Error("Vendor profile not found");
+        error.statusCode = 404;
+        throw error;
+    }
+    if (vendor.status !== "approved") {
+        const error = new Error("Only approved vendors can manage products");
+        error.statusCode = 403;
+        throw error;
+    }
+};
+
 const getMyProducts = async (userId) => {
     const vendor = await Vendor.findOne({ userId: Number(userId) })
         .select("userId email storeName")
@@ -62,6 +76,7 @@ const updateProduct = async (productId, userId, productData) => {
         error.statusCode = 400;
         throw error;
     }
+    await requireApprovedVendor(userId);
 
     const product = await Product.findOneAndUpdate(
         {
@@ -90,6 +105,7 @@ const deleteProduct = async (productId, userId) => {
         error.statusCode = 400;
         throw error;
     }
+    await requireApprovedVendor(userId);
 
     const product = await Product.findOneAndDelete({
         _id: productId,
