@@ -62,7 +62,27 @@ const resolveBaseUrl = (): string => {
   return (url || 'http://localhost:3001').replace(/\/+$/, '');
 };
 
-const VENDOR_SERVICE_URL = resolveBaseUrl();
+const resolveOrderServiceUrl = (): string => {
+  let url: string | undefined;
+  try {
+    const metaEnv = (import.meta as unknown as { env?: Record<string, string> }).env;
+    if (metaEnv) {
+      url = metaEnv.VITE_ORDER_SERVICE_URL || metaEnv.ORDER_SERVICE_URL;
+    }
+  } catch {
+    // Environments without import.meta.env
+  }
+  if (!url) {
+    const globalProcess = (globalThis as unknown as { process?: { env?: Record<string, string | undefined> } }).process;
+    if (globalProcess?.env) {
+      url = globalProcess.env.VITE_ORDER_SERVICE_URL || globalProcess.env.ORDER_SERVICE_URL;
+    }
+  }
+  return (url || 'http://localhost:3003').replace(/\/+$/, '');
+};
+
+export const VENDOR_SERVICE_URL = resolveBaseUrl();
+export const ORDER_SERVICE_URL = resolveOrderServiceUrl();
 
 const getAuthHeaders = (): HeadersInit => {
   const token = localStorage.getItem('vendor_token');
@@ -76,8 +96,9 @@ const getAuthHeaders = (): HeadersInit => {
   };
 };
 
-const request = async <T>(path: string, options: RequestInit = {}): Promise<T> => {
-  const response = await fetch(`${VENDOR_SERVICE_URL}${path}`, {
+const sendRequest = async <T>(baseUrl: string, path: string, options: RequestInit = {}): Promise<T> => {
+  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  const response = await fetch(`${baseUrl}${cleanPath}`, {
     ...options,
     headers: {
       ...getAuthHeaders(),
@@ -97,19 +118,35 @@ const request = async <T>(path: string, options: RequestInit = {}): Promise<T> =
   return payload.data as T;
 };
 
+const request = async <T>(path: string, options: RequestInit = {}): Promise<T> => {
+  return sendRequest<T>(VENDOR_SERVICE_URL, path, options);
+};
+
+const orderRequest = async <T>(path: string, options: RequestInit = {}): Promise<T> => {
+  try {
+    return await sendRequest<T>(ORDER_SERVICE_URL, path, options);
+  } catch (err) {
+    // Graceful fallback to vendor service if order-service is temporarily unreachable
+    if (err instanceof Error && /Failed to fetch|NetworkError|ECONNREFUSED/i.test(err.message)) {
+      return await sendRequest<T>(VENDOR_SERVICE_URL, path, options);
+    }
+    throw err;
+  }
+};
+
 export const getVendorProfile = async (): Promise<VendorProfile> => {
   return request<VendorProfile>('/vendor-data/profile');
 };
 
 export const getVendorOrders = async (): Promise<VendorSubOrder[]> => {
-  return request<VendorSubOrder[]>('/vendor-data/orders');
+  return orderRequest<VendorSubOrder[]>('/vendor-data/orders');
 };
 
 export const updateVendorOrderStatus = async (
   orderId: string,
   status: string
 ): Promise<void> => {
-  await request<unknown>(`/vendor-data/orders/${encodeURIComponent(orderId)}/status`, {
+  await orderRequest<unknown>(`/vendor-data/orders/${encodeURIComponent(orderId)}/status`, {
     method: 'PATCH',
     body: JSON.stringify({ status }),
   });

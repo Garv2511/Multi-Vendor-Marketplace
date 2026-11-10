@@ -18,11 +18,13 @@ const VENDOR_SERVICE_URL =
 export interface LoginProps {
   onNavigateToSignup?: () => void;
   onNavigateToProfile?: () => void;
+  onNavigateToCustomerAuth?: () => void;
 }
 
 export const LoginPage: React.FC<LoginProps> = ({
   onNavigateToSignup,
   onNavigateToProfile,
+  onNavigateToCustomerAuth,
 }) => {
   const { loginUser } = useMarketplace();
   const [email, setEmail] = useState('');
@@ -207,7 +209,7 @@ export const LoginPage: React.FC<LoginProps> = ({
           </form>
 
           {/* Bottom Switch Card */}
-          <div className="mt-8 p-4 bg-[#f4f2ee] border border-neutral-200/80 text-center space-y-1.5">
+          <div className="mt-8 p-4 bg-[#f4f2ee] border border-neutral-200/80 text-center space-y-2">
             <p className="text-[11px] text-neutral-800">
               DONT HAVE AN ACCOUNT?
             </p>
@@ -219,6 +221,20 @@ export const LoginPage: React.FC<LoginProps> = ({
               <span>BECOME A PARTNER</span>
               <ChevronRightIcon />
             </button>
+            {onNavigateToCustomerAuth && (
+              <div className="pt-2 border-t border-neutral-200/60">
+                <p className="text-[11px] text-neutral-600">
+                  Looking to shop instead?{' '}
+                  <button
+                    type="button"
+                    onClick={onNavigateToCustomerAuth}
+                    className="font-semibold text-neutral-900 underline hover:text-black cursor-pointer"
+                  >
+                    Customer Sign In
+                  </button>
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </div>

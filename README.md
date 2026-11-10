@@ -1,9 +1,7 @@
 # Multi-Vendor Marketplace
 
-This repository contains the college project for a multi-vendor marketplace.
-The applications are kept independently runnable so that authentication can
-continue working while catalogue, orders, payments, and payouts are added
-incrementally.
+This repository contains the architecture and implementation for a decoupled multi-vendor marketplace.
+The microservices are kept independently runnable and scalable.
 
 ## Repository layout
 
@@ -12,29 +10,40 @@ Multi-Vendor-Marketplace/
 ├── frontend/
 │   └── marketplace-ui/      # React + TypeScript + Vite frontend
 ├── services/
-│   ├── vendor-service/      # Vendor identity, profiles, KYC, and admin approval
-│   └── otp-service/         # OTP generation, Redis storage, and email delivery
+│   ├── order-service/       # Order processing, multi-vendor cart checkout, inventory reservation, and vendor fulfillment (:3003)
+│   ├── customer-service/    # Customer profiles, addresses, public catalog, and cart (:3002)
+│   ├── vendor-service/      # Vendor identity, profiles, KYC, products, and admin approval (:3001)
+│   └── otp-service/         # OTP generation, Redis storage, rate limiting, and email delivery (:3000)
 ├── infrastructure/          # Container and reverse-proxy notes/configuration
 ├── docs/                    # Architecture and local-development documentation
 └── .github/                 # Reserved for future GitHub workflows
 ```
 
-The existing authentication flow is implemented by `vendor-service` and
-`otp-service`. Product, cart, checkout, order, payment, and payout behavior is
-currently prototype behavior in the frontend and is not yet backed by
-independent backend services.
-
 ## Local development
 
-Start the services from their own directories:
+Start the backend services from their own directories:
 
 ```powershell
+# 1. OTP Microservice (Port 3000)
 cd services\otp-service
 npm run dev
 ```
 
 ```powershell
+# 2. Vendor Microservice (Port 3001)
 cd services\vendor-service
+npm run dev
+```
+
+```powershell
+# 3. Customer Microservice (Port 3002)
+cd services\customer-service
+npm run dev
+```
+
+```powershell
+# 4. Order Microservice (Port 3003)
+cd services\order-service
 npm run dev
 ```
 
@@ -51,6 +60,8 @@ The default local ports are:
 |---|---:|
 | OTP service | 3000 |
 | Vendor service | 3001 |
+| Customer service | 3002 |
+| Order service | 3003 |
 | Vite frontend | 5173 |
 
 MongoDB and Redis must be available locally. Environment files remain inside

@@ -4,36 +4,48 @@
 
 ### Frontend
 
-`frontend/marketplace-ui` is a React, TypeScript, and Vite application. Its
-authentication and vendor profile screens call the vendor service. The
-customer cart UI still uses seeded data and browser `localStorage`; the
-backend now exposes a persistent customer cart API for future integration.
-Catalogue, checkout, order, and payout screens currently use seeded data.
+`frontend/marketplace-ui` is a React, TypeScript, and Vite application running on port 5173.
+- It calls **Order Service** (`http://localhost:3003`) for all order creation, cancellation, status queries, and vendor order fulfillment.
+- It calls **Vendor Service** (`http://localhost:3001`) for vendor onboarding, KYC, vendor product management, and admin reviews.
+- It calls **Customer Service** (`http://localhost:3002`) for customer OTP authentication, profiles, saved addresses, catalog discovery, and cart management.
+
+### Order service
+
+`services/order-service` is an Express and MongoDB application on port 3003.
+It owns:
+
+- multi-vendor cart checkout processing
+- atomic inventory deduction & restoration
+- customer order creation and cancellation (`/orders`)
+- vendor sub-order queries and status updates (`/vendor/orders`, `/vendor-data/orders`)
+- order lifecycle management (`pending`, `processing`, `completed`, `cancelled`)
+
+### Customer service
+
+`services/customer-service` is an Express and MongoDB application on port 3002.
+It owns:
+
+- customer OTP authentication and customer profile registration
+- customer profile updates (`/customers/me`)
+- customer saved delivery address book (`/customers/me/addresses`)
+- public product catalog discovery filtered strictly by vendor approval status (`/catalog/products`)
+- customer cart persistence and validation (`/cart`)
+
+It calls the OTP service over HTTP (`:3000`) for customer OTP generation and verification.
 
 ### Vendor service
 
 `services/vendor-service` is an Express and MongoDB application on port 3001.
 It owns:
 
-- users and roles
-- customer profiles linked to user identities
-- vendor registration
-- vendor profiles
-- KYC upload metadata
-- vendor approval and rejection
-- JWT authentication
-- public product catalogue reads filtered by vendor approval
+- vendor and admin user identities & credentials
+- vendor registration (`/register`)
+- vendor profile and KYC upload metadata (`/vendor-data`)
+- vendor approval and rejection (`/admin`)
+- vendor product CRUD and image uploads (`/products`)
+- vendor & admin JWT authentication
 
-It calls the OTP service over HTTP for OTP request, resend, and verification.
-
-Customer authentication uses the same vendor-service identity collection,
-JWT secret, and OTP service. A dedicated customer OTP route assigns the
-`customer` role only on the server and creates a separate customer profile
-linked by `userId`; existing vendor and admin accounts cannot be converted.
-The vendor service also exposes public `GET /catalog/products` and
-`GET /catalog/products/:productId` reads. These endpoints join products to
-vendors by `vendorId` and return only products whose vendor status is
-`approved`.
+It calls the OTP service over HTTP (`:3000`) for vendor OTP verification.
 
 ### OTP service
 
@@ -45,34 +57,21 @@ vendors by `vendorId` and return only products whose vendor status is
 - resend limits and cooldowns
 - SMTP delivery
 
-It does not issue marketplace JWTs or create vendor records.
-
-## Current integration
+## Service Integration
 
 ```text
-frontend
-   │
-   └── HTTP ──> vendor-service (:3001)
-                    │
-                    ├── MongoDB
-                    └── HTTP ──> otp-service (:3000)
-                                      │
-                                      ├── Redis
-                                      └── SMTP
+                               frontend (:5173)
+                   ┌──────────────────┼──────────────────┐
+                   │ HTTP             │ HTTP             │ HTTP
+                   ▼                  ▼                  ▼
+         vendor-service (:3001) customer-service (:3002) order-service (:3003)
+            │             │          │             │          │
+            │ MongoDB     │ HTTP     │ MongoDB     │ HTTP     │ MongoDB
+            │             ▼          │             ▼          │
+            │       otp-service (:3000)      otp-service (:3000)
+            │             │                        │
+            │             ├── Redis                ├── Redis
+            │             └── SMTP                 └── SMTP
+            ▼                                      ▼          ▼
+         Shared MongoDB (Users, Vendors, Products, Carts, SavedAddresses, Orders)
 ```
-
-The directory reorganization does not change these ports, route paths, or
-service responsibilities.
-
-The vendor service also owns customer profiles, saved delivery addresses,
-persistent carts, and customer order checkout preparation. Saved addresses
-are customer-owned records; orders retain immutable delivery-address
-snapshots.
-
-## Not implemented as backend services yet
-
-- payment provider integration
-- refund processing
-- payout settlement
-- message broker
-- API gateway

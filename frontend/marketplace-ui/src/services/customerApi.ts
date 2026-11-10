@@ -15,7 +15,7 @@ const resolveBaseUrl = (): string => {
   let url: string | undefined;
   try {
     if (typeof import.meta !== 'undefined' && import.meta && import.meta.env) {
-      url = import.meta.env.VITE_VENDOR_SERVICE_URL || import.meta.env.VENDOR_SERVICE_URL;
+      url = import.meta.env.VITE_CUSTOMER_SERVICE_URL || import.meta.env.CUSTOMER_SERVICE_URL || import.meta.env.VITE_VENDOR_SERVICE_URL || import.meta.env.VENDOR_SERVICE_URL;
     }
   } catch {
     // In environments where import.meta.env is not supported
@@ -23,14 +23,34 @@ const resolveBaseUrl = (): string => {
   if (!url) {
     const globalProcess = (globalThis as unknown as { process?: { env?: Record<string, string | undefined> } }).process;
     if (globalProcess?.env) {
-      url = globalProcess.env.VITE_VENDOR_SERVICE_URL || globalProcess.env.VENDOR_SERVICE_URL;
+      url = globalProcess.env.VITE_CUSTOMER_SERVICE_URL || globalProcess.env.CUSTOMER_SERVICE_URL || globalProcess.env.VITE_VENDOR_SERVICE_URL || globalProcess.env.VENDOR_SERVICE_URL;
     }
   }
-  return (url || 'http://localhost:3001').replace(/\/+$/, '');
+  return (url || 'http://localhost:3002').replace(/\/+$/, '');
+};
+
+const resolveOrderServiceUrl = (): string => {
+  let url: string | undefined;
+  try {
+    if (typeof import.meta !== 'undefined' && import.meta && import.meta.env) {
+      url = import.meta.env.VITE_ORDER_SERVICE_URL || import.meta.env.ORDER_SERVICE_URL;
+    }
+  } catch {
+    // In environments where import.meta.env is not supported
+  }
+  if (!url) {
+    const globalProcess = (globalThis as unknown as { process?: { env?: Record<string, string | undefined> } }).process;
+    if (globalProcess?.env) {
+      url = globalProcess.env.VITE_ORDER_SERVICE_URL || globalProcess.env.ORDER_SERVICE_URL;
+    }
+  }
+  return (url || 'http://localhost:3003').replace(/\/+$/, '');
 };
 
 // Sanitize base URL by stripping trailing slashes
-export const VENDOR_SERVICE_URL = resolveBaseUrl();
+export const CUSTOMER_SERVICE_URL = resolveBaseUrl();
+export const VENDOR_SERVICE_URL = CUSTOMER_SERVICE_URL;
+export const ORDER_SERVICE_URL = resolveOrderServiceUrl();
 
 export const CUSTOMER_TOKEN_KEY = 'customer_token';
 
@@ -65,7 +85,11 @@ export interface RequestOptions extends RequestInit {
   requiresAuth?: boolean;
 }
 
-export const customerRequest = async <T>(endpoint: string, options: RequestOptions = {}): Promise<T> => {
+export const customerRequest = async <T>(
+  endpoint: string,
+  options: RequestOptions = {},
+  serviceBaseUrl: string = CUSTOMER_SERVICE_URL
+): Promise<T> => {
   const { requiresAuth = false, headers, ...restOptions } = options;
   const requestHeaders: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -81,7 +105,7 @@ export const customerRequest = async <T>(endpoint: string, options: RequestOptio
   }
 
   const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-  const url = `${VENDOR_SERVICE_URL}${cleanEndpoint}`;
+  const url = `${serviceBaseUrl}${cleanEndpoint}`;
   let response: Response;
   try {
     response = await fetch(url, {
@@ -89,7 +113,19 @@ export const customerRequest = async <T>(endpoint: string, options: RequestOptio
       headers: requestHeaders,
     });
   } catch {
-    throw new CustomerApiError('Unable to connect to marketplace service. Please check your network connection.', 503);
+    // If order-service is down and this was an order request, fallback to customer-service
+    if (serviceBaseUrl === ORDER_SERVICE_URL && ORDER_SERVICE_URL !== CUSTOMER_SERVICE_URL) {
+      try {
+        response = await fetch(`${CUSTOMER_SERVICE_URL}${cleanEndpoint}`, {
+          ...restOptions,
+          headers: requestHeaders,
+        });
+      } catch {
+        throw new CustomerApiError('Unable to connect to marketplace service. Please check your network connection.', 503);
+      }
+    } else {
+      throw new CustomerApiError('Unable to connect to marketplace service. Please check your network connection.', 503);
+    }
   }
 
   const contentType = response.headers.get('content-type') || '';
@@ -308,7 +344,7 @@ export const createOrder = async (payload: CheckoutPayload): Promise<CustomerOrd
     method: 'POST',
     requiresAuth: true,
     body: JSON.stringify(payload),
-  });
+  }, ORDER_SERVICE_URL);
 };
 
 export const listOrders = async (page = 1, pageSize = 20): Promise<CustomerOrderListResult> => {
@@ -316,18 +352,18 @@ export const listOrders = async (page = 1, pageSize = 20): Promise<CustomerOrder
   const ps = Math.min(50, Math.max(1, pageSize));
   return customerRequest<CustomerOrderListResult>(`/orders?page=${p}&pageSize=${ps}`, {
     requiresAuth: true,
-  });
+  }, ORDER_SERVICE_URL);
 };
 
 export const getOrder = async (orderId: string): Promise<CustomerOrder> => {
   return customerRequest<CustomerOrder>(`/orders/${encodeURIComponent(orderId.trim())}`, {
     requiresAuth: true,
-  });
+  }, ORDER_SERVICE_URL);
 };
 
 export const cancelOrder = async (orderId: string): Promise<CustomerOrder> => {
   return customerRequest<CustomerOrder>(`/orders/${encodeURIComponent(orderId.trim())}/cancel`, {
     method: 'POST',
     requiresAuth: true,
-  });
+  }, ORDER_SERVICE_URL);
 };

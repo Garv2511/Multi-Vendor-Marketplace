@@ -19,7 +19,7 @@ function AppContent() {
   const [currentView, setCurrentView] = useState<MarketplaceView>('catalog');
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
 
-  const { isAdmin } = useMarketplace();
+  const { isAdmin, currentUserEmail } = useMarketplace();
   const { isCustomerAuthenticated } = useCustomer();
 
   return (
@@ -98,6 +98,38 @@ function AppContent() {
                 </div>
               </div>
             </div>
+          ) : !currentUserEmail && (typeof window === 'undefined' || !localStorage.getItem('vendor_token')) ? (
+            <div className="w-full max-w-xl mx-auto my-16 px-4 text-center">
+              <div className="bg-white border border-neutral-200 p-8 sm:p-12 shadow-sm space-y-4">
+                <div className="inline-block p-1.5 px-3 bg-[#f5efe6] border border-[#e5dac9] mb-1">
+                  <span className="text-[10px] font-mono font-bold tracking-widest uppercase text-[#9c784e]">
+                    PORT 3001 • VENDOR SERVICE
+                  </span>
+                </div>
+                <h2 className="text-sm font-semibold tracking-widest uppercase text-neutral-900">
+                  Vendor Portal Authentication
+                </h2>
+                <p className="text-xs text-neutral-600 font-light leading-relaxed">
+                  Sign in with your merchant account to manage products, inspect KYC credentials, and fulfill customer sub-orders.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setCurrentView('login')}
+                    className="px-6 py-2.5 bg-neutral-900 text-white text-[11px] font-semibold tracking-widest uppercase hover:bg-neutral-800 transition-colors cursor-pointer"
+                  >
+                    Vendor Sign In
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCurrentView('signup')}
+                    className="px-6 py-2.5 border border-neutral-300 text-neutral-800 text-[11px] font-semibold tracking-widest uppercase hover:border-black transition-colors cursor-pointer"
+                  >
+                    Register Store
+                  </button>
+                </div>
+              </div>
+            </div>
           ) : (
             <VendorDashboardView onNavigateToProfile={() => setCurrentView('profile')} />
           )
@@ -131,6 +163,7 @@ function AppContent() {
           <LoginPage
             onNavigateToSignup={() => setCurrentView('signup')}
             onNavigateToProfile={() => setCurrentView('profile')}
+            onNavigateToCustomerAuth={() => setCurrentView('customer-auth')}
           />
         )}
 

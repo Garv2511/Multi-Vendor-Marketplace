@@ -29,7 +29,7 @@ export interface NavbarProps {
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ currentView = 'catalog', onNavigate }) => {
-  const { currentUserEmail, isAdmin, isVendor } = useMarketplace();
+  const { currentUserEmail, isAdmin } = useMarketplace();
   const { isCustomerAuthenticated, customerUser, customerProfile, cartCount: customerCartCount } = useCustomer();
 
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -102,7 +102,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView = 'catalog', onNavig
                 </button>
               )}
 
-              {!isCustomerAuthenticated && (isVendor || isAdmin) && (
+              {!isCustomerAuthenticated && (
                 <button
                   type="button"
                   onClick={() => onNavigate('vendor')}
@@ -255,13 +255,23 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView = 'catalog', onNavig
                 </span>
               </button>
             ) : (
-              <button
-                type="button"
-                onClick={() => onNavigate('customer-auth')}
-                className="text-[11px] font-semibold tracking-[0.16em] uppercase text-neutral-800 hover:text-black py-1.5 px-3 border border-neutral-300 hover:border-black cursor-pointer transition-colors"
-              >
-                SIGN IN
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => onNavigate('customer-auth')}
+                  className="text-[11px] font-semibold tracking-[0.16em] uppercase text-neutral-800 hover:text-black py-1.5 px-3 border border-neutral-300 hover:border-black cursor-pointer transition-colors"
+                >
+                  SIGN IN
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onNavigate('login')}
+                  className="hidden sm:inline-block text-[10px] font-semibold tracking-[0.16em] uppercase text-neutral-500 hover:text-neutral-900 py-1.5 px-2.5 transition-colors cursor-pointer"
+                  title="Vendor Access"
+                >
+                  VENDOR LOGIN
+                </button>
+              </div>
             )}
 
             {/* Mobile menu button */}
@@ -302,7 +312,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentView = 'catalog', onNavig
                 MY ORDERS
               </button>
             )}
-            {!isCustomerAuthenticated && (isVendor || isAdmin) && (
+            {!isCustomerAuthenticated && (
               <button
                 type="button"
                 onClick={() => {

@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Marketplace Launch Video Experience</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    @keyframes pulseGlow {
+      0%, 100% { box-shadow: 0 0 25px -5px rgba(99, 102, 241, 0.4); }
+      50% { box-shadow: 0 0 45px 5px rgba(168, 85, 247, 0.6); }
+    }
+    @keyframes scanline {
+      0% { transform: translateY(-100%); }
+      100% { transform: translateY(1000%); }
+    }
+    .neon-border {
+      animation: pulseGlow 4s infinite ease-in-out;
+    }
+    .scanline-effect {
+      background: linear-gradient(to bottom, transparent 50%, rgba(0, 255, 200, 0.04) 51%);
+      background-size: 100% 4px;
+    }
+  </style>
+</head>
+<body class="bg-[var(--background,#0b0f19)] text-[var(--foreground,#f1f5f9)] font-sans antialiased p-4 md:p-6 min-h-screen">
+  <div class="max-w-5xl mx-auto space-y-6">
+    <!-- Header Banner -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[var(--border,#1e293b)] pb-5">
+      <div>
+        <div class="flex items-center gap-2 mb-1">
+          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
+            🎬 PRODUCT LAUNCH VIDEO REEL
+          </span>
+          <span class="text-xs text-[var(--muted-foreground,#94a3b8)]">Runtime: 1m 45s • 4K 60fps Trailer</span>
+        </div>
+        <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight bg-gradient-to-r from-white via-indigo-200 to-indigo-400 bg-clip-text text-transparent">
+          The Multi-Vendor Marketplace: Reimagined
+        </h1>
+        <p class="text-xs md:text-sm text-[var(--muted-foreground,#94a3b8)]">
+          Decoupled Microservices • Redis OTP Fortress • Zero-Trust Vendor KYC • Unified Multi-Vendor Checkout
+        </p>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="toggleTtsBtn" onclick="toggleTts()" class="px-3 py-1.5 rounded-lg border border-[var(--border,#334155)] bg-[var(--card,#1e293b)] hover:bg-[var(--content,#334155)] text-xs font-medium transition flex items-center gap-1.5">
+          <span id="ttsIcon">🔊</span>
+          <span id="ttsLabel">Narrator: ON</span>
+        </button>
+        <button id="exportScriptBtn" onclick="copyCurrentScript()" class="px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-md transition flex items-center gap-1.5">
+          📋 Copy VO Script
+        </button>
+      </div>
+    </div>
+
+    <!-- Main Video Frame Simulator -->
+    <div class="relative rounded-2xl overflow-hidden border border-indigo-500/30 bg-black neon-border shadow-2xl">
+      <!-- 16:9 Aspect Video Viewport -->
+      <div class="relative w-full aspect-video flex flex-col justify-between p-6 md:p-8 scanline-effect overflow-hidden" id="videoCanvas">
+        <!-- Floating HUD Header -->
+        <div class="flex justify-between items-center z-10 text-xs font-mono">
+          <div class="flex items-center gap-2 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-md border border-white/10">
+            <span class="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping"></span>
+            <span class="font-bold text-red-400 tracking-wider">REC</span>
+            <span class="text-slate-400">|</span>
+            <span id="hudTimestamp" class="text-slate-200 font-bold">00:00:00</span>
+          </div>
+          <div class="flex items-center gap-2 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-md border border-white/10">
+            <span id="hudSceneId" class="text-indigo-400 font-bold">SCENE 1/6</span>
+            <span class="text-slate-400">•</span>
+            <span id="hudCameraAngle" class="text-slate-300">Macro Cinematic Pan</span>
+          </div>
+        </div>
+
+        <!-- Dynamic Visual Stage -->
+        <div id="stageContent" class="my-auto z-10 flex flex-col items-center justify-center text-center transition-all duration-500 transform">
+          <!-- Rendered dynamically by JS -->
+        </div>
+
+        <!-- Floating Kinetic Subtitle Bar -->
+        <div class="z-10 bg-black/80 backdrop-blur-md rounded-xl p-3 md:p-4 border border-white/10 max-w-3xl mx-auto w-full text-center shadow-lg">
+          <div class="text-[11px] font-mono text-indigo-400 uppercase tracking-widest mb-1 flex items-center justify-center gap-1">
+            <span>🎙️ VOICE-OVER</span>
+            <span id="voBeatTag" class="text-slate-400 text-[10px]">• HOOK</span>
+          </div>
+          <p id="subtitles" class="text-sm md:text-base font-medium text-slate-100 leading-relaxed min-h-[3rem] flex items-center justify-center">
+            "Commerce was broken. Siloed stores, clunky checkouts, and zero vendor trust..."
+          </p>
+        </div>
+
+        <!-- Ambient Backdrop Gradients -->
+        <div id="ambientBackdrop" class="absolute inset-0 opacity-40 transition-all duration-700 pointer-events-none bg-gradient-to-br from-indigo-950 via-purple-950 to-black"></div>
+      </div>
+
+      <!-- Playback Controls & Scrubber -->
+      <div class="bg-[var(--card,#0f172a)] border-t border-[var(--border,#1e293b)] p-3 md:p-4 flex flex-col gap-2">
+        <!-- Progress Bar -->
+        <div class="flex items-center gap-3">
+          <span id="timeCurrent" class="text-xs font-mono text-slate-400 w-12 text-right">0:00</span>
+          <div class="relative flex-1 h-2 bg-slate-800 rounded-full cursor-pointer overflow-hidden" onclick="handleScrub(event)" id="scrubTrack">
+            <div id="progressBar" class="absolute left-0 top-0 bottom-0 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 w-0 transition-all duration-100"></div>
+          </div>
+          <span id="timeTotal" class="text-xs font-mono text-slate-400 w-12">1:45</span>
+        </div>
+
+        <!-- Transport Buttons -->
+        <div class="flex items-center justify-between pt-1">
+          <div class="flex items-center gap-2">
+            <button onclick="prevScene()" class="p-2 rounded-lg hover:bg-slate-800 text-slate-300 transition" title="Previous Scene">
+              ⏮️
+            </button>
+            <button id="playBtn" onclick="togglePlay()" class="px-5 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-xs flex items-center gap-2 shadow-lg hover:scale-105 active:scale-95 transition">
+              <span id="playIcon">▶</span>
+              <span id="playText">PLAY TRAILER</span>
+            </button>
+            <button onclick="nextScene()" class="p-2 rounded-lg hover:bg-slate-800 text-slate-300 transition" title="Next Scene">
+              ⏭️
+            </button>
+            <button onclick="restartVideo()" class="p-2 rounded-lg hover:bg-slate-800 text-slate-300 transition" title="Restart">
+              🔄
+            </button>
+          </div>
+
+          <div class="text-xs text-slate-400 font-mono hidden sm:block">
+            SFX: <span id="sfxTag" class="text-emerald-400 font-bold">Deep Sub Bass Drop</span>
+          </div>
+
+          <div class="flex items-center gap-1.5">
+            <button onclick="setSpeed(1)" class="speed-btn px-2 py-1 rounded text-xs bg-indigo-500/20 text-indigo-300 font-bold" data-speed="1">1.0x</button>
+            <button onclick="setSpeed(1.5)" class="speed-btn px-2 py-1 rounded text-xs hover:bg-slate-800 text-slate-400" data-speed="1.5">1.5x</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scene Timeline Selector -->
+    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2" id="sceneThumbnails">
+      <!-- Injected via JS -->
+    </div>
+
+    <!-- Production Breakdown & Prompts Card -->
+    <div class="rounded-xl border border-[var(--border,#1e293b)] bg-[var(--card,#0f172a)] p-5 space-y-4">
+      <div class="flex items-center justify-between border-b border-[var(--border,#1e293b)] pb-3">
+        <h3 class="text-sm font-bold text-slate-200 flex items-center gap-2">
+          <span>🎬 Director's Studio Cut</span>
+          <span class="text-xs font-normal text-slate-400">Cinematography, AI Video Prompts & Audio Map</span>
+        </h3>
+        <span id="activeSceneBadge" class="text-xs font-mono px-2 py-0.5 rounded bg-indigo-900/50 text-indigo-300 border border-indigo-700/50">Scene 1 Info</span>
+      </div>
+
+      <div class="grid md:grid-cols-2 gap-4 text-xs">
+        <div class="space-y-2">
+          <div class="text-slate-400 font-medium uppercase tracking-wider text-[11px]">Visual Choreography & UI State</div>
+          <div id="prodVisual" class="p-3 rounded-lg bg-slate-900/80 border border-slate-800 text-slate-300 leading-relaxed font-mono">
+            Loading visual notes...
+          </div>
+        </div>
+        <div class="space-y-2">
+          <div class="text-slate-400 font-medium uppercase tracking-wider text-[11px]">Runway Gen-3 / Sora AI Prompt</div>
+          <div class="relative group">
+            <div id="prodAiPrompt" class="p-3 rounded-lg bg-slate-900/80 border border-slate-800 text-emerald-400 leading-relaxed font-mono select-all">
+              Loading AI prompt...
+            </div>
+            <button onclick="copyAiPrompt()" class="absolute top-2 right-2 px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-white text-[10px] border border-slate-700">
+              Copy Prompt
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const SCENES = [
+      {
+        id: 1,
+        title: "The Fragmented Era",
+        duration: 15,
+        timestamp: "0:00 - 0:15",
+        camera: "3D Glitch Fly-Through",
+        sfx: "Distant Cyber Wind, Bass Drone, Digital Static",
+        vo: "Every day, thousands of creators and businesses struggle inside fragmented e-commerce silos. Clunky checkouts. Unverified sellers. Zero confidence.",
+        visualTitle: "COMMERCE WAS BROKEN",
+        visualSubtitle: "Fragmented stacks. Clunky checkouts. Unverified sellers.",
+        icon: "⚡",
+        color: "from-rose-950 via-slate-950 to-black",
+        badge: "PROBLEM HOOK",
+        uiPreview: `
+          <div class="inline-block p-4 rounded-xl border border-red-500/30 bg-red-950/20 mb-4 animate-pulse">
+            <div class="text-3xl mb-2">⚠️</div>
+            <div class="text-red-400 font-mono text-xs font-bold tracking-widest uppercase">Traditional Commerce Bottleneck</div>
+            <div class="text-slate-400 text-xs mt-1">High friction • High churn • Identity fraud</div>
+          </div>
+        `,
+        prodVisual: "Glitchy dark abstract matrix of disconnected online shops with red alert pulses. Camera plunges forward through shattered glass panes representing fragmented legacy architecture.",
+        aiPrompt: "Cinematic 8k, slow dolly push-in through futuristic holographic cyber displays showing fractured digital storefronts, dark moody atmosphere with red neon accents, photorealistic depth of field, octane render."
+      },
+      {
+        id: 2,
+        title: "The Architecture Reveal",
+        duration: 18,
+        timestamp: "0:15 - 0:33",
+        camera: "Exploded 3D Microservice Diagram",
+        sfx: "Laser Sweep, Power Grid Online Hum, Crisp Snaps",
+        vo: "Until now. Meet the next-generation Multi-Vendor Marketplace — engineered from the ground up with decoupled microservices, sub-millisecond reactivity, and rock-solid resilience.",
+        visualTitle: "MULTI-VENDOR MARKETPLACE",
+        visualSubtitle: "Microservices Stack: Express • Redis • MongoDB • React 19 • Vite",
+        icon: "🚀",
+        color: "from-indigo-950 via-blue-950 to-black",
+        badge: "THE REVEAL",
+        uiPreview: `
+          <div class="grid grid-cols-3 gap-3 max-w-md w-full mb-4">
+            <div class="p-3 rounded-lg border border-indigo-500/40 bg-indigo-950/40 text-center">
+              <div class="text-indigo-400 font-mono text-[11px] font-bold">PORT 3000</div>
+              <div class="text-white text-xs font-bold mt-1">OTP Service</div>
+              <div class="text-slate-400 text-[10px]">Redis + SMTP</div>
+            </div>
+            <div class="p-3 rounded-lg border border-purple-500/40 bg-purple-950/40 text-center">
+              <div class="text-purple-400 font-mono text-[11px] font-bold">PORT 3001</div>
+              <div class="text-white text-xs font-bold mt-1">Vendor Core</div>
+              <div class="text-slate-400 text-[10px]">MongoDB + JWT</div>
+            </div>
+            <div class="p-3 rounded-lg border border-cyan-500/40 bg-cyan-950/40 text-center">
+              <div class="text-cyan-400 font-mono text-[11px] font-bold">PORT 5173</div>
+              <div class="text-white text-xs font-bold mt-1">Vite Client</div>
+              <div class="text-slate-400 text-[10px]">React + TS</div>
+            </div>
+          </div>
+        `,
+        prodVisual: "Sleek glowing microservices architecture diagram assembling in real-time in isometric space. Beams of light route packets between OTP Service (Redis), Vendor Core (Mongo), and modern Vite UI.",
+        aiPrompt: "Sleek minimalist 3D animation, glowing glass server nodes connecting with bright violet and cyan laser light streams in dark space, high tech cloud architecture visualization, 4K Unreal Engine 5 aesthetic."
+      },
+      {
+        id: 3,
+        title: "Vendor Superpowers & KYC",
+        duration: 20,
+        timestamp: "0:33 - 0:53",
+        camera: "Smooth Orbit around Seller Dashboard",
+        sfx: "Haptic Typing, Biometric Scan Chime, Success Ting",
+        vo: "For sellers: an all-in-one cockpit. Seamless document KYC upload, instant product catalog indexing, and real-time inventory controls that turn any brand into a global storefront.",
+        visualTitle: "ZERO-FRICTION VENDOR PORTAL",
+        visualSubtitle: "Instant KYC Upload • Real-Time Catalog • Auto-Approval Gating",
+        icon: "🏪",
+        color: "from-emerald-950 via-teal-950 to-black",
+        badge: "VENDOR SUITE",
+        uiPreview: `
+          <div class="bg-slate-900/90 border border-emerald-500/30 rounded-xl p-4 max-w-lg w-full text-left shadow-2xl mb-4">
+            <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+              <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+                <span class="text-xs font-bold text-slate-200">Apex Hardware Store</span>
+              </div>
+              <span class="text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded font-mono font-bold">KYC: APPROVED</span>
+            </div>
+            <div class="grid grid-cols-2 gap-2 mt-3 text-xs">
+              <div class="bg-slate-800/60 p-2 rounded border border-slate-700/50">
+                <span class="text-slate-400 text-[10px]">Active Products</span>
+                <p class="text-white font-bold text-sm">48 Active</p>
+              </div>
+              <div class="bg-slate-800/60 p-2 rounded border border-slate-700/50">
+                <span class="text-slate-400 text-[10px]">Total Revenue</span>
+                <p class="text-emerald-400 font-bold text-sm">$34,850.00</p>
+              </div>
+            </div>
+          </div>
+        `,
+        prodVisual: "Fluid screen recording animation zooming into the Vendor Management Dashboard, highlighting drag-and-drop KYC document verification and product publishing cards with instant preview modals.",
+        aiPrompt: "Clean elegant UI mockup floating in 3D studio lighting, showcasing dark mode modern SaaS dashboard with animated graphs, glowing emerald green status pills, crisp typography, hyper-detailed UI screen recording."
+      },
+      {
+        id: 4,
+        title: "Redis OTP Security Fortress",
+        duration: 16,
+        timestamp: "0:53 - 1:09",
+        camera: "Fast Macro Snap to Security Shield",
+        sfx: "Digital Lock Clack, Cyber Shield Hum, Code Ripple",
+        vo: "Protected by an isolated OTP security microservice. Redis-backed token TTL, rate limiting, brute-force defense, and cryptographic hashing guarantee bulletproof identity.",
+        visualTitle: "AIR-TIGHT SECURITY VAULT",
+        visualSubtitle: "Redis Expiration • Rate Limit Armor • Zero Identity Leakage",
+        icon: "🛡️",
+        color: "from-amber-950 via-slate-950 to-black",
+        badge: "SECURITY CORE",
+        uiPreview: `
+          <div class="flex items-center gap-4 bg-slate-900/90 border border-amber-500/30 p-4 rounded-xl max-w-md w-full mb-4">
+            <div class="w-12 h-12 rounded-xl bg-amber-500/20 flex items-center justify-center text-2xl border border-amber-500/40">
+              🔒
+            </div>
+            <div class="text-left flex-1">
+              <div class="text-xs font-mono font-bold text-amber-400">REDIS OTP ENGINE</div>
+              <div class="text-slate-300 text-xs mt-0.5">SHA-256 Hashing • 120s TTL Expiry</div>
+              <div class="flex gap-1.5 mt-2">
+                <span class="w-6 h-7 rounded bg-slate-800 border border-amber-400 text-amber-300 font-mono text-center font-bold text-xs flex items-center justify-center">8</span>
+                <span class="w-6 h-7 rounded bg-slate-800 border border-amber-400 text-amber-300 font-mono text-center font-bold text-xs flex items-center justify-center">4</span>
+                <span class="w-6 h-7 rounded bg-slate-800 border border-amber-400 text-amber-300 font-mono text-center font-bold text-xs flex items-center justify-center">9</span>
+                <span class="w-6 h-7 rounded bg-slate-800 border border-amber-400 text-amber-300 font-mono text-center font-bold text-xs flex items-center justify-center">2</span>
+                <span class="w-6 h-7 rounded bg-slate-800 border border-amber-400 text-amber-300 font-mono text-center font-bold text-xs flex items-center justify-center">1</span>
+                <span class="w-6 h-7 rounded bg-slate-800 border border-amber-400 text-amber-300 font-mono text-center font-bold text-xs flex items-center justify-center">6</span>
+              </div>
+            </div>
+          </div>
+        `,
+        prodVisual: "3D security shield locking into place around a glowing Redis memory grid. Numerical OTP digits animate and lock into position with high-precision particle effects and cryptographic data rings.",
+        aiPrompt: "Macro close-up shot of a holographic cryptographic security vault door locking shut, orange and gold glowing energy circuits, floating binary streams, photorealistic sci-fi UI security visualization."
+      },
+      {
+        id: 5,
+        title: "Seamless Buyer Journey & Checkout",
+        duration: 18,
+        timestamp: "1:09 - 1:27",
+        camera: "Kinetic Scroll & Zoom onto Checkout Flow",
+        sfx: "Cash Register Ping, Swift Mouse Click, Woosh Transition",
+        vo: "For buyers: an immersive, lightning-fast shopping voyage. Dynamic discovery, verified merchant badges, and a unified cart that seamlessly splits multi-vendor checkouts in one tap.",
+        visualTitle: "UNIFIED MULTI-VENDOR CART",
+        visualSubtitle: "Instant Discovery • Verified Seller Badges • 1-Click Checkout",
+        icon: "🛒",
+        color: "from-purple-950 via-indigo-950 to-black",
+        badge: "BUYER EXPERIENCE",
+        uiPreview: `
+          <div class="bg-slate-900/90 border border-purple-500/30 rounded-xl p-4 max-w-md w-full text-left shadow-2xl mb-4">
+            <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+              <span class="text-xs font-bold text-slate-200">Unified Multi-Store Order #9042</span>
+              <span class="text-xs font-bold text-purple-400">$199.98</span>
+            </div>
+            <div class="space-y-1.5 mt-2">
+              <div class="flex justify-between items-center text-[11px] text-slate-300">
+                <span>📦 Wireless Pro Headphones (AudioTech)</span>
+                <span class="font-mono">$129.99</span>
+              </div>
+              <div class="flex justify-between items-center text-[11px] text-slate-300">
+                <span>📦 Braided Kevlar Cable (GizmoHub)</span>
+                <span class="font-mono">$69.99</span>
+              </div>
+            </div>
+            <button class="w-full mt-3 py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded text-xs font-bold shadow">
+              Checkout All Vendors (Instant) →
+            </button>
+          </div>
+        `,
+        prodVisual: "Fast-paced kinetic UI walkthrough: buyer searches product, clicks modal with rich specs, adds items from two different vendors into one unified cart, and clicks checkout with zero lag.",
+        aiPrompt: "Futuristic digital shopping app interface with floating glass cards, smooth parallax UI scroll showing electronic items, seamless animated checkout button press with violet particle burst, Apple keynote style."
+      },
+      {
+        id: 6,
+        title: "The Finale & Call to Action",
+        duration: 18,
+        timestamp: "1:27 - 1:45",
+        camera: "Epic Pull-Back to Infinity Logo & Glow",
+        sfx: "Orchestral Synth Swell, Deep Impact Boom, Harmonic Echo",
+        vo: "Built for speed. Architected for scale. Engineered for trust. Welcome to the future of decentralized commerce. Launch your marketplace today.",
+        visualTitle: "THE FUTURE OF COMMERCE IS HERE",
+        visualSubtitle: "Deploy today. Scale forever. Own your marketplace.",
+        icon: "✨",
+        color: "from-indigo-950 via-purple-900 to-black",
+        badge: "LAUNCH CALL TO ACTION",
+        uiPreview: `
+          <div class="space-y-3 mb-4">
+            <div class="text-4xl">🌟</div>
+            <div class="flex items-center justify-center gap-3">
+              <span class="px-3 py-1 rounded-full bg-white/10 text-white text-xs font-mono font-bold border border-white/20">Open Source Stack</span>
+              <span class="px-3 py-1 rounded-full bg-indigo-500/20 text-indigo-300 text-xs font-mono font-bold border border-indigo-500/40">Production Ready</span>
+            </div>
+          </div>
+        `,
+        prodVisual: "Camera soars backward revealing the entire ecosystem: hundreds of connected vendor storefronts orbiting a central luminous brand logo, culminating in an energetic burst of light and call-to-action text.",
+        aiPrompt: "Epic cinematic reveal of illuminated digital marketplace constellation, millions of glowing nodes pulsing in harmony, cinematic lens flare, dark blue and vibrant purple color grading, blockbuster tech product launch finale."
+      }
+    ];
+
+    let currentSceneIdx = 0;
+    let isPlaying = false;
+    let playbackSpeed = 1.0;
+    let sceneTimer = null;
+    let ttsEnabled = true;
+    let synth = window.speechSynthesis;
+
+    function renderScene(idx) {
+      currentSceneIdx = idx;
+      const s = SCENES[idx];
+
+      // Update HUD & Badges
+      document.getElementById('hudSceneId').textContent = `SCENE ${s.id}/${SCENES.length}`;
+      document.getElementById('hudCameraAngle').textContent = s.camera;
+      document.getElementById('hudTimestamp').textContent = `00:${String(Math.floor(calcElapsedTime(idx))).padStart(2, '0')}:00`;
+      document.getElementById('voBeatTag').textContent = `• ${s.badge}`;
+      document.getElementById('sfxTag').textContent = s.sfx;
+      document.getElementById('subtitles').textContent = `"${s.vo}"`;
+      document.getElementById('activeSceneBadge').textContent = `Scene ${s.id}: ${s.title}`;
+
+      // Update Production Card
+      document.getElementById('prodVisual').textContent = s.prodVisual;
+      document.getElementById('prodAiPrompt').textContent = s.aiPrompt;
+
+      // Update Stage Content
+      const stage = document.getElementById('stageContent');
+      stage.innerHTML = `
+        <div class="transition-all transform scale-100 duration-500 max-w-xl">
+          <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-white/10 text-indigo-300 border border-white/15 mb-3 backdrop-blur-sm">
+            <span>${s.icon}</span>
+            <span>${s.badge}</span>
+          </div>
+          <h2 class="text-2xl md:text-4xl font-black tracking-tight text-white mb-2 uppercase drop-shadow-md">
+            ${s.visualTitle}
+          </h2>
+          <p class="text-xs md:text-sm text-indigo-200/90 mb-4 max-w-md mx-auto">
+            ${s.visualSubtitle}
+          </p>
+          <div class="flex justify-center">
+            ${s.uiPreview}
+          </div>
+        </div>
+      `;
+
+      // Update Ambient Backdrop
+      const backdrop = document.getElementById('ambientBackdrop');
+      backdrop.className = `absolute inset-0 opacity-40 transition-all duration-700 pointer-events-none bg-gradient-to-br ${s.color}`;
+
+      // Update Thumbnails
+      renderThumbnails();
+
+      // Update Progress Bar
+      updateProgress();
+
+      // Trigger Narration if enabled and playing
+      if (isPlaying && ttsEnabled) {
+        speakVo(s.vo);
+      }
+    }
+
+    function renderThumbnails() {
+      const container = document.getElementById('sceneThumbnails');
+      container.innerHTML = SCENES.map((sc, i) => `
+        <button onclick="goToScene(${i})" class="text-left p-2.5 rounded-xl border transition flex flex-col justify-between ${
+          i === currentSceneIdx 
+            ? 'border-indigo-500 bg-indigo-950/40 ring-1 ring-indigo-500' 
+            : 'border-slate-800 bg-slate-900/60 hover:border-slate-700'
+        }">
+          <div class="flex items-center justify-between text-[11px] font-mono text-slate-400">
+            <span>#0${sc.id}</span>
+            <span>${sc.duration}s</span>
+          </div>
+          <div class="font-bold text-xs text-slate-200 truncate mt-1">${sc.title}</div>
+          <div class="text-[10px] text-indigo-400 font-mono mt-1">${sc.badge}</div>
+        </button>
+      `).join('');
+    }
+
+    function calcElapsedTime(sceneIdx) {
+      let t = 0;
+      for (let i = 0; i < sceneIdx; i++) {
+        t += SCENES[i].duration;
+      }
+      return t;
+    }
+
+    function getTotalDuration() {
+      return SCENES.reduce((acc, curr) => acc + curr.duration, 0);
+    }
+
+    function updateProgress() {
+      const total = getTotalDuration();
+      const current = calcElapsedTime(currentSceneIdx);
+      const pct = (current / total) * 100;
+      document.getElementById('progressBar').style.width = `${pct}%`;
+
+      const m = Math.floor(current / 60);
+      const s = Math.floor(current % 60);
+      document.getElementById('timeCurrent').textContent = `${m}:${String(s).padStart(2, '0')}`;
+    }
+
+    function togglePlay() {
+      if (isPlaying) {
+        pauseVideo();
+      } else {
+        playVideo();
+      }
+    }
+
+    function playVideo() {
+      isPlaying = true;
+      document.getElementById('playIcon').textContent = "⏸";
+      document.getElementById('playText').textContent = "PAUSE";
+      scheduleNextScene();
+      if (ttsEnabled) {
+        speakVo(SCENES[currentSceneIdx].vo);
+      }
+    }
+
+    function pauseVideo() {
+      isPlaying = false;
+      document.getElementById('playIcon').textContent = "▶";
+      document.getElementById('playText').textContent = "RESUME";
+      clearTimeout(sceneTimer);
+      if (synth) synth.cancel();
+    }
+
+    function scheduleNextScene() {
+      clearTimeout(sceneTimer);
+      if (!isPlaying) return;
+
+      const durMs = (SCENES[currentSceneIdx].duration * 1000) / playbackSpeed;
+      sceneTimer = setTimeout(() => {
+        if (currentSceneIdx < SCENES.length - 1) {
+          currentSceneIdx++;
+          renderScene(currentSceneIdx);
+          scheduleNextScene();
+        } else {
+          // Finished
+          pauseVideo();
+          document.getElementById('progressBar').style.width = '100%';
+        }
+      }, durMs);
+    }
+
+    function goToScene(idx) {
+      if (synth) synth.cancel();
+      renderScene(idx);
+      if (isPlaying) {
+        scheduleNextScene();
+      }
+    }
+
+    function prevScene() {
+      if (currentSceneIdx > 0) {
+        goToScene(currentSceneIdx - 1);
+      }
+    }
+
+    function nextScene() {
+      if (currentSceneIdx < SCENES.length - 1) {
+        goToScene(currentSceneIdx + 1);
+      }
+    }
+
+    function restartVideo() {
+      goToScene(0);
+      if (!isPlaying) {
+        playVideo();
+      }
+    }
+
+    function setSpeed(speed) {
+      playbackSpeed = speed;
+      document.querySelectorAll('.speed-btn').forEach(btn => {
+        if (parseFloat(btn.dataset.speed) === speed) {
+          btn.className = "speed-btn px-2 py-1 rounded text-xs bg-indigo-500/20 text-indigo-300 font-bold";
+        } else {
+          btn.className = "speed-btn px-2 py-1 rounded text-xs hover:bg-slate-800 text-slate-400";
+        }
+      });
+      if (isPlaying) {
+        scheduleNextScene();
+      }
+    }
+
+    function handleScrub(e) {
+      const track = document.getElementById('scrubTrack');
+      const rect = track.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      const pct = Math.max(0, Math.min(1, clickX / rect.width));
+      const targetSec = pct * getTotalDuration();
+
+      let accum = 0;
+      let targetIdx = 0;
+      for (let i = 0; i < SCENES.length; i++) {
+        accum += SCENES[i].duration;
+        if (targetSec <= accum) {
+          targetIdx = i;
+          break;
+        }
+      }
+      goToScene(targetIdx);
+    }
+
+    function speakVo(text) {
+      if (!synth || !ttsEnabled) return;
+      synth.cancel();
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.rate = playbackSpeed;
+      utter.pitch = 1.0;
+      synth.speak(utter);
+    }
+
+    function toggleTts() {
+      ttsEnabled = !ttsEnabled;
+      document.getElementById('ttsIcon').textContent = ttsEnabled ? "🔊" : "🔇";
+      document.getElementById('ttsLabel').textContent = ttsEnabled ? "Narrator: ON" : "Narrator: MUTED";
+      if (!ttsEnabled && synth) {
+        synth.cancel();
+      } else if (ttsEnabled && isPlaying) {
+        speakVo(SCENES[currentSceneIdx].vo);
+      }
+    }
+
+    function copyCurrentScript() {
+      const fullScript = SCENES.map(s => `[${s.timestamp}] (${s.title} - ${s.badge})\nVO: ${s.vo}\nSFX: ${s.sfx}\nAI Prompt: ${s.aiPrompt}\n`).join('\n---\n\n');
+      navigator.clipboard.writeText(fullScript).then(() => {
+        const btn = document.getElementById('exportScriptBtn');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = "✅ Copied All!";
+        setTimeout(() => { btn.innerHTML = originalText; }, 2000);
+      });
+    }
+
+    function copyAiPrompt() {
+      const prompt = SCENES[currentSceneIdx].aiPrompt;
+      navigator.clipboard.writeText(prompt).then(() => {
+        alert("Copied scene AI video prompt to clipboard!");
+      });
+    }
+
+    // Initialize first scene
+    renderScene(0);
+  </script>
+</body>
+</html>
