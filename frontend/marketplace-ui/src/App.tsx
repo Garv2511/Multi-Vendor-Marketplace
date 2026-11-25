@@ -8,10 +8,19 @@ import CatalogView from './views/CatalogView';
 import CartCheckoutView from './views/CartCheckoutView';
 import VendorDashboardView from './views/VendorDashboardView';
 import AdminConsoleView from './views/AdminConsoleView';
-import { MarketplaceProvider } from './context/MarketplaceContext';
+import CustomerOrdersView from './views/CustomerOrdersView';
+import CustomerProfileView from './views/CustomerProfileView';
+import { CustomerAuthView } from './auth/CustomerAuthView';
+import { MarketplaceProvider, useMarketplace } from './context/MarketplaceContext';
+import { CustomerProvider } from './context/CustomerContext';
+import { useCustomer } from './context/useCustomer';
 
 function AppContent() {
   const [currentView, setCurrentView] = useState<MarketplaceView>('catalog');
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+
+  const { isAdmin, currentUserEmail } = useMarketplace();
+  const { isCustomerAuthenticated } = useCustomer();
 
   return (
     <div className="min-h-screen w-full flex flex-col bg-[#fcfcfb] text-neutral-900 font-sans selection:bg-neutral-900 selection:text-white">
@@ -21,32 +30,175 @@ function AppContent() {
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col justify-center">
         {currentView === 'catalog' && (
-          <CatalogView onNavigateToCart={() => setCurrentView('cart')} />
+          <CatalogView
+            onNavigateToCart={() => setCurrentView('cart')}
+            onNavigateToAuth={() => setCurrentView('customer-auth')}
+          />
         )}
+
         {currentView === 'cart' && (
-          <CartCheckoutView onNavigateToCatalog={() => setCurrentView('catalog')} />
+          <CartCheckoutView
+            onNavigateToCatalog={() => setCurrentView('catalog')}
+            onNavigateToAuth={() => setCurrentView('customer-auth')}
+            onNavigateToOrder={(orderId) => {
+              setSelectedOrderId(orderId);
+              setCurrentView('customer-orders');
+            }}
+          />
         )}
+
+        {currentView === 'customer-orders' && (
+          <CustomerOrdersView
+            initialOrderId={selectedOrderId}
+            onNavigateToCatalog={() => setCurrentView('catalog')}
+            onNavigateToAuth={() => setCurrentView('customer-auth')}
+          />
+        )}
+
+        {currentView === 'customer-profile' && (
+          <CustomerProfileView
+            onNavigateToAuth={() => setCurrentView('customer-auth')}
+            onNavigateToOrders={() => setCurrentView('customer-orders')}
+            onNavigateToCatalog={() => setCurrentView('catalog')}
+          />
+        )}
+
+        {currentView === 'customer-auth' && (
+          <CustomerAuthView
+            onSuccess={() => setCurrentView('catalog')}
+            onNavigateToVendorAuth={() => setCurrentView('login')}
+          />
+        )}
+
         {currentView === 'vendor' && (
-          <VendorDashboardView onNavigateToProfile={() => setCurrentView('profile')} />
+          isCustomerAuthenticated ? (
+            <div className="w-full max-w-xl mx-auto my-16 px-4 text-center">
+              <div className="bg-white border border-neutral-200 p-8 sm:p-12 shadow-sm">
+                <h2 className="text-sm font-semibold tracking-widest uppercase text-neutral-900 mb-2">
+                  Vendor Portal Access Restricted
+                </h2>
+                <p className="text-xs text-neutral-600 mb-6 font-light leading-relaxed">
+                  You are currently signed in as a customer. Customers cannot edit vendor stores or publish atelier products.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                  <button
+                    type="button"
+                    onClick={() => setCurrentView('customer-profile')}
+                    className="px-5 py-2.5 bg-neutral-900 text-white text-[11px] font-semibold tracking-widest uppercase hover:bg-neutral-800 transition-colors cursor-pointer"
+                  >
+                    Go to Customer Dossier
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCurrentView('catalog')}
+                    className="px-5 py-2.5 border border-neutral-300 text-neutral-800 text-[11px] font-semibold tracking-widest uppercase hover:border-black transition-colors cursor-pointer"
+                  >
+                    Browse Catalog
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : !currentUserEmail && (typeof window === 'undefined' || !localStorage.getItem('vendor_token')) ? (
+            <div className="w-full max-w-xl mx-auto my-16 px-4 text-center">
+              <div className="bg-white border border-neutral-200 p-8 sm:p-12 shadow-sm space-y-4">
+                <div className="inline-block p-1.5 px-3 bg-[#f5efe6] border border-[#e5dac9] mb-1">
+                  <span className="text-[10px] font-mono font-bold tracking-widest uppercase text-[#9c784e]">
+                    PORT 3001 • VENDOR SERVICE
+                  </span>
+                </div>
+                <h2 className="text-sm font-semibold tracking-widest uppercase text-neutral-900">
+                  Vendor Portal Authentication
+                </h2>
+                <p className="text-xs text-neutral-600 font-light leading-relaxed">
+                  Sign in with your merchant account to manage products, inspect KYC credentials, and fulfill customer sub-orders.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setCurrentView('login')}
+                    className="px-6 py-2.5 bg-neutral-900 text-white text-[11px] font-semibold tracking-widest uppercase hover:bg-neutral-800 transition-colors cursor-pointer"
+                  >
+                    Vendor Sign In
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCurrentView('signup')}
+                    className="px-6 py-2.5 border border-neutral-300 text-neutral-800 text-[11px] font-semibold tracking-widest uppercase hover:border-black transition-colors cursor-pointer"
+                  >
+                    Register Store
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <VendorDashboardView onNavigateToProfile={() => setCurrentView('profile')} />
+          )
         )}
-        {currentView === 'admin' && <AdminConsoleView />}
+
+        {currentView === 'admin' && (
+          isAdmin ? (
+            <AdminConsoleView onNavigateToCatalog={() => setCurrentView('catalog')} />
+          ) : (
+            <div className="w-full max-w-xl mx-auto my-16 px-4 text-center">
+              <div className="bg-white border border-neutral-200 p-8 sm:p-12 shadow-sm">
+                <h2 className="text-sm font-semibold tracking-widest uppercase text-neutral-900 mb-2">
+                  Administrator Access Restricted
+                </h2>
+                <p className="text-xs text-neutral-600 mb-6 font-light leading-relaxed">
+                  Platform governance and settlement controls require an authenticated administrator session.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setCurrentView('catalog')}
+                  className="px-6 py-2.5 bg-neutral-900 text-white text-[11px] font-semibold tracking-widest uppercase hover:bg-neutral-800 transition-colors cursor-pointer"
+                >
+                  Return to Catalog
+                </button>
+              </div>
+            </div>
+          )
+        )}
+
         {currentView === 'login' && (
           <LoginPage
             onNavigateToSignup={() => setCurrentView('signup')}
             onNavigateToProfile={() => setCurrentView('profile')}
+            onNavigateToCustomerAuth={() => setCurrentView('customer-auth')}
           />
         )}
+
         {currentView === 'signup' && (
           <SignupPage
             onNavigateToLogin={() => setCurrentView('login')}
             onNavigateToProfile={() => setCurrentView('profile')}
           />
         )}
+
         {currentView === 'profile' && (
-          <ProfilePage
-            onNavigateToLogin={() => setCurrentView('login')}
-            onNavigateToSignup={() => setCurrentView('signup')}
-          />
+          isCustomerAuthenticated ? (
+            <div className="w-full max-w-xl mx-auto my-16 px-4 text-center">
+              <div className="bg-white border border-neutral-200 p-8 sm:p-12 shadow-sm">
+                <h2 className="text-sm font-semibold tracking-widest uppercase text-neutral-900 mb-2">
+                  Vendor Dossier Restricted
+                </h2>
+                <p className="text-xs text-neutral-600 mb-6 font-light leading-relaxed">
+                  You are signed in with a customer account. For customer orders, profile, and shipping addresses, visit your customer dossier.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setCurrentView('customer-profile')}
+                  className="px-6 py-2.5 bg-neutral-900 text-white text-[11px] font-semibold tracking-widest uppercase hover:bg-neutral-800 transition-colors cursor-pointer"
+                >
+                  Go to Customer Dossier
+                </button>
+              </div>
+            </div>
+          ) : (
+            <ProfilePage
+              onNavigateToLogin={() => setCurrentView('login')}
+              onNavigateToSignup={() => setCurrentView('signup')}
+            />
+          )
         )}
       </main>
 
@@ -59,7 +211,9 @@ function AppContent() {
 function App() {
   return (
     <MarketplaceProvider>
-      <AppContent />
+      <CustomerProvider>
+        <AppContent />
+      </CustomerProvider>
     </MarketplaceProvider>
   );
 }

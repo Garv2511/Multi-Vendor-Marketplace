@@ -1,7 +1,7 @@
 # Customer API Contract
 
-This document reflects the current implementation in `services/vendor-service`.
-The base URL is the vendor service URL, normally `http://localhost:3001`.
+This document reflects the implementation in `services/customer-service`.
+The base URL is the customer service URL, normally `http://localhost:3002` (configurable via `VITE_CUSTOMER_SERVICE_URL`).
 The OTP service is an internal dependency and is not called directly by the
 customer frontend.
 

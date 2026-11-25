@@ -16,9 +16,7 @@ npm install
 npm run dev
 ```
 
-The OTP service uses `services\otp-service\.env`. Use the existing local
-environment file or create one from the variables documented in the service
-README. Do not commit the file.
+The OTP service uses `services\otp-service\.env` (default port `3000`).
 
 ## Start the vendor service
 
@@ -28,9 +26,28 @@ npm install
 npm run dev
 ```
 
-The vendor service uses `services\vendor-service\.env`. Its
-`OTP_SERVICE_URL` should point to the running OTP service, which defaults to
-`http://localhost:3000`.
+The vendor service uses `services\vendor-service\.env` (default port `3001`). Its
+`OTP_SERVICE_URL` should point to `http://localhost:3000`.
+
+## Start the customer service
+
+```powershell
+cd services\customer-service
+npm install
+npm run dev
+```
+
+The customer service uses `services\customer-service\.env` (default port `3002`).
+
+## Start the order service
+
+```powershell
+cd services\order-service
+npm install
+npm run dev
+```
+
+The order service uses `services\order-service\.env` (default port `3003`).
 
 ## Start the frontend
 
@@ -40,16 +57,16 @@ npm install
 npm run dev
 ```
 
-The frontend defaults to `http://localhost:3001` for the vendor service. This
-can be overridden with the existing Vite environment variable
-`VITE_VENDOR_SERVICE_URL`.
+The frontend uses `frontend\marketplace-ui\.env.local`:
+- `VITE_VENDOR_SERVICE_URL=http://localhost:3001`
+- `VITE_CUSTOMER_SERVICE_URL=http://localhost:3002`
+- `VITE_ORDER_SERVICE_URL=http://localhost:3003`
 
 ## Basic checks
 
 ```powershell
 Invoke-WebRequest http://localhost:3000/
 Invoke-WebRequest http://localhost:3001/health
+Invoke-WebRequest http://localhost:3002/health
+Invoke-WebRequest http://localhost:3003/health
 ```
-
-After both services respond, verify OTP login, vendor registration, profile
-loading, and KYC upload through the frontend.
